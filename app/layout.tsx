@@ -1,11 +1,15 @@
 import type { Metadata } from 'next'
-import { Bebas_Neue, Inter } from 'next/font/google'
+import { Bebas_Neue, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ variable: '--font-sans', subsets: ['latin'] })
 const bebasNeue = Bebas_Neue({
   variable: '--font-display',
   weight: '400',
+  subsets: ['latin'],
+})
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-jetbrains',
   subsets: ['latin'],
 })
 
@@ -41,7 +45,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${bebasNeue.variable} bg-foreground`}
+      className={`${inter.variable} ${bebasNeue.variable} ${jetbrainsMono.variable} bg-foreground`}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>
