@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Bebas_Neue, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   title: 'NexCommerce — AI-Powered Commerce Platform',
   description:
     'Empowering buyers and sellers with intelligent tools, seamless transactions, and a modern marketplace experience built for growth.',
-  generator: "Ardian's Team ",
+  generator: "Ardian's Team",
   icons: {
     icon: [
       {
@@ -47,7 +48,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${bebasNeue.variable} ${jetbrainsMono.variable} bg-foreground`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        {process.env.NODE_ENV === 'production' && <Analytics />}
+      </body>
     </html>
   )
 }

@@ -31,18 +31,18 @@ export function Hero() {
           '-=0.5',
         )
         .fromTo(
-  '.hero-cta',
-  {
-    y: 24,
-    opacity: 0,
-  },
-  {
-    y: 0,
-    opacity: 1,
-    duration: 0.2,
-    stagger: 0.12,
-  },
-)
+          '.hero-cta',
+          {
+            y: 24,
+            opacity: 0,
+          },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.2,
+            stagger: 0.12,
+          },
+        )
         .from(
           '.hero-wire',
           {

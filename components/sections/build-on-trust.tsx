@@ -1,5 +1,6 @@
 import { Sparkle } from '@/components/sparkle'
 import { ShieldCheck, Crown, Wallet } from 'lucide-react'
+import { Reveal, Stagger, RevealItem } from '@/components/reveal'
 
 const pillars = [
   {
@@ -24,15 +25,17 @@ export function BuildOnTrust() {
     <section id="trust" className="relative px-6 py-20 md:px-10 md:py-28">
       <div className="mx-auto max-w-7xl">
         {/* Label — left aligned */}
-        <span className="inline-flex items-center gap-3 font-mono text-xs font-medium uppercase tracking-[0.2em] text-foreground/70">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border">
-            <Sparkle className="h-3 w-3 text-foreground" />
+        <Reveal>
+          <span className="inline-flex items-center gap-3 font-mono text-xs font-medium uppercase tracking-[0.2em] text-foreground/70">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border">
+              <Sparkle className="h-3 w-3 text-foreground" />
+            </span>
+            Trust Is Our Foundation
           </span>
-          Trust Is Our Foundation
-        </span>
+        </Reveal>
 
         {/* Heading — centered */}
-        <div className="mt-10 text-center">
+        <Reveal className="mt-10 text-center" delay={0.05}>
           <h2 className="font-display text-6xl font-black uppercase leading-[0.9] tracking-tight text-foreground sm:text-7xl md:text-8xl">
             Build On Trust
           </h2>
@@ -41,25 +44,28 @@ export function BuildOnTrust() {
             transparent transactions, and community trust creating a safer
             marketplace for buyers and sellers worldwide.
           </p>
-        </div>
+        </Reveal>
 
         {/* Cards */}
-        <div className="mt-16 grid gap-6 md:grid-cols-3">
+        <Stagger className="mt-16 grid gap-6 md:grid-cols-3">
           {pillars.map(({ icon: Icon, title, desc }) => (
-            <div
+            <RevealItem
               key={title}
-              className="flex flex-col items-center rounded-[1.75rem] border border-foreground/15 bg-card px-8 py-12 text-center"
+              className="group flex flex-col items-center rounded-[1.75rem] border border-foreground/15 bg-card px-8 py-12 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_24px_50px_-24px_rgba(37,99,235,0.4)]"
             >
-              <Icon className="h-14 w-14 text-primary" strokeWidth={1.5} />
+              <Icon
+                className="h-14 w-14 text-primary transition-transform duration-300 group-hover:scale-110"
+                strokeWidth={1.5}
+              />
               <h3 className="mt-8 font-display text-2xl font-black uppercase tracking-wide text-foreground">
                 {title}
               </h3>
               <p className="mt-4 font-mono text-xs leading-relaxed text-foreground/60">
                 {desc}
               </p>
-            </div>
+            </RevealItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   )
