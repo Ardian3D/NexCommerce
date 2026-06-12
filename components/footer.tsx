@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
+import { Reveal } from '@/components/reveal'
 
 const columns = [
   {
@@ -41,9 +42,9 @@ const socials: { label: string; path: string }[] = [
 
 export function Footer() {
   return (
-    <footer className="relative border-t border-border bg-background px-6 pb-8 pt-16 md:px-10">
+    <footer className="relative bg-background px-6 pb-8 pt-16 md:px-10">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,0.8fr)_1.2fr]">
+        <Reveal className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,0.8fr)_1.2fr]">
           {/* Brand */}
           <div>
             <Image
@@ -121,12 +122,12 @@ export function Footer() {
               </button>
             </form>
           </div>
-        </div>
+        </Reveal>
 
         {/* Bottom bar */}
         <div className="mt-16 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-xs text-foreground/50">
-            © 2026 NexCommerce. All rights reserved.
+            &copy; 2026 NexCommerce. All rights reserved.
           </p>
           <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-foreground/50">
             Building The Future Of Commerce

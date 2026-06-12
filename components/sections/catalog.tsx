@@ -1,11 +1,8 @@
 'use client'
 
 import { useRef } from 'react'
+import Image from 'next/image'
 import {
-  Watch,
-  Headphones,
-  Backpack,
-  Lamp,
   Heart,
   Star,
   ChevronLeft,
@@ -13,10 +10,11 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { Sparkle } from '@/components/sparkle'
+import { Reveal } from '@/components/reveal'
 
 const products = [
   {
-    icon: Watch,
+    image: '/products/smart-watch.png',
     category: 'Tech Gadgets',
     name: 'Smart Watch Series X',
     rating: 4.8,
@@ -25,7 +23,7 @@ const products = [
     old: 199,
   },
   {
-    icon: Headphones,
+    image: '/products/headphones.png',
     category: 'Electronics',
     name: 'Wireless Noise Cancelling Headphones',
     rating: 4.9,
@@ -34,7 +32,7 @@ const products = [
     old: null,
   },
   {
-    icon: Backpack,
+    image: '/products/backpack.png',
     category: 'Accessories',
     name: 'Minimalist Backpack',
     rating: 4.7,
@@ -43,7 +41,7 @@ const products = [
     old: null,
   },
   {
-    icon: Lamp,
+    image: '/products/desk-lamp.png',
     category: 'Home & Living',
     name: 'Smart LED Desk Lamp',
     rating: 4.6,
@@ -52,7 +50,7 @@ const products = [
     old: 69,
   },
   {
-    icon: Watch,
+    image: '/products/smart-watch.png',
     category: 'Tech Gadgets',
     name: 'Smart Watch Series X',
     rating: 4.8,
@@ -80,7 +78,7 @@ export function Catalog() {
     >
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[300px_1fr] lg:gap-12">
         {/* Left — heading */}
-        <div className="lg:pt-4">
+        <Reveal className="lg:pt-4" direction="right">
           <span className="inline-flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.2em] text-foreground/70">
             <Sparkle className="h-3.5 w-3.5 text-primary" />
             Our Picks
@@ -104,10 +102,10 @@ export function Catalog() {
             View All Products
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </a>
-        </div>
+        </Reveal>
 
         {/* Right — product carousel */}
-        <div className="relative min-w-0">
+        <Reveal className="relative min-w-0" direction="left" delay={0.1}>
           <div
             ref={trackRef}
             className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -136,14 +134,14 @@ export function Catalog() {
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   )
 }
 
 function ProductCard({
-  icon: Icon,
+  image,
   category,
   name,
   rating,
@@ -151,7 +149,7 @@ function ProductCard({
   price,
   old,
 }: {
-  icon: typeof Watch
+  image: string
   category: string
   name: string
   rating: number
@@ -159,8 +157,17 @@ function ProductCard({
   price: number
   old: number | null
 }) {
+  const discount = old ? Math.round(((old - price) / old) * 100) : null
+
   return (
     <article className="group relative flex w-[240px] shrink-0 snap-start flex-col rounded-3xl border border-foreground/10 bg-card p-4 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_24px_50px_-24px_rgba(37,99,235,0.45)]">
+      {/* Discount badge */}
+      {discount && (
+        <span className="absolute left-5 top-5 z-10 rounded-full bg-primary px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
+          -{discount}%
+        </span>
+      )}
+
       {/* Wishlist */}
       <button
         type="button"
@@ -171,10 +178,13 @@ function ProductCard({
       </button>
 
       {/* Image */}
-      <div className="flex aspect-square items-center justify-center rounded-2xl bg-gradient-to-br from-foreground/[0.04] to-foreground/[0.09]">
-        <Icon
-          className="h-20 w-20 text-foreground/70 transition-transform duration-300 group-hover:scale-110"
-          strokeWidth={1.25}
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-foreground/[0.04] to-foreground/[0.09]">
+        <Image
+          src={image || '/placeholder.svg'}
+          alt={name}
+          fill
+          sizes="240px"
+          className="object-cover transition-transform duration-500 group-hover:scale-110"
         />
       </div>
 

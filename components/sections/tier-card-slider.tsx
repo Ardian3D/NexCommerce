@@ -4,16 +4,14 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-// `zoom` crops the baked-in black margin per card (Starter has none, Ascent/Elite do).
-// `posY` nudges vertical framing when a card's top/bottom margin is uneven.
 const cards = [
   { tier: 'Starter', src: '/card-tier-starter.png', zoom: 1.06, posY: '50%' },
-  { tier: 'Ascent', src: '/card-tier-ascent.png', zoom: 1.0, posY: '50%' },
-  { tier: 'Elite', src: '/card-tier-elite.png', zoom: 1.15, posY: '50%' },
+  { tier: 'Ascent', src: '/card-tier-ascent.png', zoom: 1.06, posY: '50%' },
+  { tier: 'Elite', src: '/card-tier-elite.png', zoom: 1.01, posY: '50%' },
 ]
 
 export function TierCardSlider() {
-  const [index, setIndex] = useState(2) // default: Elite
+  const [index, setIndex] = useState(2)
 
   const go = (i: number) => setIndex((i + cards.length) % cards.length)
 
@@ -67,7 +65,9 @@ export function TierCardSlider() {
               aria-label={`Show ${tier} tier`}
               aria-current={index === i}
               className={`h-2 rounded-full transition-all duration-300 ${
-                index === i ? 'w-6 bg-primary' : 'w-2 bg-foreground/20 hover:bg-foreground/40'
+                index === i
+                  ? 'w-6 bg-primary'
+                  : 'w-2 bg-foreground/20 hover:bg-foreground/40'
               }`}
             />
           ))}

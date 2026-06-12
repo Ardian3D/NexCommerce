@@ -8,6 +8,7 @@ import { BuildOnTrust } from '@/components/sections/build-on-trust'
 import { Testimonials } from '@/components/sections/testimonials'
 import { Faq } from '@/components/sections/faq'
 import { Footer } from '@/components/footer'
+import { SectionDivider } from '@/components/section-divider'
 
 const gridBackground = {
   backgroundImage:
@@ -42,12 +43,17 @@ export default function Page() {
             />
             <div className="relative z-10 flex flex-col">
               <Catalog />
+              <SectionDivider />
               <Identity />
               <Steps />
               <HowItWorks />
+              <SectionDivider />
               <BuildOnTrust />
+              <SectionDivider />
               <Testimonials />
+              <SectionDivider />
               <Faq />
+              <SectionDivider />
               <Footer />
             </div>
           </div>

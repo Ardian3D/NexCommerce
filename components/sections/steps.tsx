@@ -1,4 +1,5 @@
 import { UserPlus, IdCard, ShieldCheck, ShoppingCart } from 'lucide-react'
+import { Stagger, RevealItem } from '@/components/reveal'
 
 const steps = [
   {
@@ -32,9 +33,9 @@ export function Steps() {
     <section className="relative px-6 pb-10 md:px-10">
       <div className="mx-auto max-w-7xl">
         {/* Cards */}
-        <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map(({ icon: Icon, num, title, desc }) => (
-            <div
+            <RevealItem
               key={num}
               className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-foreground/15 bg-card px-7 py-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_rgba(37,99,235,0.45)]"
             >
@@ -63,13 +64,12 @@ export function Steps() {
               <p className="relative mt-3 font-mono text-xs leading-relaxed text-foreground/55">
                 {desc}
               </p>
-            </div>
+            </RevealItem>
           ))}
-        </div>
+        </Stagger>
 
         {/* Timeline rail with numbered nodes (desktop only) */}
         <div className="relative mt-0 hidden lg:block">
-          {/* Connector stubs + nodes */}
           <div className="grid grid-cols-4">
             {steps.map(({ num }, i) => (
               <div key={num} className="flex flex-col items-center">
