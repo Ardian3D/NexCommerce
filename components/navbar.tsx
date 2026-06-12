@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Sparkle } from './sparkle'
@@ -47,12 +48,13 @@ export function Navbar() {
 
         {/* CTA + mobile toggle */}
         <div className="flex shrink-0 items-center gap-3">
-          <button
+          <Link
+            href="/connect"
             className="hidden items-center gap-2 rounded-full bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-primary/25 sm:flex"
           >
             <Sparkle className="h-3.5 w-3.5" />
             Start Shop
-          </button>
+          </Link>
 
           <button
             type="button"
@@ -87,10 +89,14 @@ export function Navbar() {
                   {link}
                 </a>
               ))}
-              <button className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:hidden">
+              <Link
+                href="/connect"
+                onClick={() => setOpen(false)}
+                className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:hidden"
+              >
                 <Sparkle className="h-3.5 w-3.5" />
                 Start Shop
-              </button>
+              </Link>
             </div>
           </motion.nav>
         )}
