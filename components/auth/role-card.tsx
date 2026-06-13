@@ -126,7 +126,7 @@ export const roles: Role[] = [
       'Access a global marketplace',
     ],
     cta: 'Continue as Buyer',
-    href: '#',
+    href: '/verify?role=buyer',
     accent: 'primary',
   },
   {
@@ -142,7 +142,7 @@ export const roles: Role[] = [
       'Unlock exclusive seller tiers',
     ],
     cta: 'Continue as Seller',
-    href: '#',
+    href: '/verify?role=seller',
     accent: 'primary',
   },
 ]
