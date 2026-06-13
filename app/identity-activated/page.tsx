@@ -135,7 +135,7 @@ function ActivatedContent() {
                 {/* CTAs */}
                 <div className="mt-8 space-y-3">
                   <Link
-                    href={isSeller ? '/seller' : '/buyer'}
+                    href={isSeller ? '/seller/dashboard' : '/buyer/dashboard'}
                     className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-sm font-bold uppercase tracking-[0.12em] text-primary-foreground transition-all duration-200 hover:brightness-110"
                   >
                     {dashboardLabel}
