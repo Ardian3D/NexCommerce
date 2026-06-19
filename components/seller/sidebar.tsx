@@ -38,6 +38,7 @@ const nav: NavItem[] = [
   { label: 'AI Assistant', icon: Sparkles, href: '/seller/ai', isNew: true },
   { label: 'Payouts', icon: Wallet, href: '/seller/payouts' },
   { label: 'Store Profile', icon: Store, href: '/seller/store' },
+  { label: 'Identity Card', icon: BadgeCheck, href: '/seller/identity' },
   { label: 'Reviews', icon: Star, href: '/seller/reviews' },
   { label: 'Settings', icon: Settings, href: '/seller/settings' },
 ]

@@ -142,7 +142,7 @@ function ActivatedContent() {
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                   <Link
-                    href="/identity-card"
+                    href={isSeller ? '/seller/identity' : '/identity'}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-border bg-card px-6 py-4 text-sm font-bold uppercase tracking-[0.12em] text-foreground transition-colors hover:border-primary/50"
                   >
                     View My Identity Card

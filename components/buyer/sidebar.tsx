@@ -37,7 +37,7 @@ const nav: NavItem[] = [
   { label: 'AI Assistant', icon: Sparkles, href: '/buyer/ai', isNew: true },
   { label: 'Messages', icon: MessageSquare, href: '/buyer/messages' },
   { label: 'Reviews', icon: Star, href: '/buyer/reviews' },
-  { label: 'Identity Card', icon: IdCard, href: '/buyer/identity' },
+  { label: 'Identity Card', icon: IdCard, href: '/identity' },
   { label: 'Settings', icon: Settings, href: '/buyer/settings' },
 ]
 
