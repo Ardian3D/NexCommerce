@@ -243,10 +243,7 @@ function SellerOrderCard({ order }: { order: SellerOrder }) {
           <p className="mt-3 text-xs text-slate-500">{order.meta.label}</p>
           {order.meta.chip === 'solana' ? (
             <span className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-              <span
-                aria-hidden="true"
-                className="h-4 w-4 rounded-[3px] bg-gradient-to-br from-teal-400 via-violet-500 to-purple-600"
-              />
+              <Image src="/solana-logo.jpg" alt="" width={16} height={16} />
               Solana
             </span>
           ) : order.meta.value ? (
