@@ -19,7 +19,7 @@ function shorten(addr: string) {
 
 export default async function AdminOrdersPage() {
   const orders = await getAdminOrders()
-  const totalRevenue = orders.reduce((s, o) => s + Number(o.amount), 0)
+  const totalRevenue = orders.reduce((s: number, o: (typeof orders)[number]) => s + Number(o.amount), 0)
 
   return (
     <AdminShell>
@@ -52,7 +52,7 @@ export default async function AdminOrdersPage() {
               <tbody>
                 {orders.length === 0 ? (
                   <tr><td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">No orders yet</td></tr>
-                ) : orders.map((o) => (
+                ) : orders.map((o: (typeof orders)[number]) => (
                   <tr key={o.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 text-xs font-semibold text-foreground">{o.id}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[140px]">{o.productName ?? '—'}</td>
