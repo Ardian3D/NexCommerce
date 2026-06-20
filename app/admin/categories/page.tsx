@@ -1,5 +1,4 @@
 import { AdminShell } from '@/components/admin/shell'
-import { LayoutGrid } from 'lucide-react'
 
 const categories = [
   { name: 'Electronics', count: 42, icon: '💻' },

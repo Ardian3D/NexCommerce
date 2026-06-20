@@ -15,7 +15,8 @@ function createClient(): PrismaClient {
 
   // Neon → pakai HTTP/WebSocket adapter (tidak hang di serverless)
   if (url.includes('neon.tech')) {
-    const pool = new Pool({ connectionString: url })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pool = new Pool({ connectionString: url }) as any
     const adapter = new PrismaNeon(pool)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new PrismaClient({ adapter } as any)

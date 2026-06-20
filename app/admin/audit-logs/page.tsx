@@ -1,5 +1,4 @@
 import { AdminShell } from '@/components/admin/shell'
-import { ScrollText } from 'lucide-react'
 
 const mockLogs = [
   { action: 'User verified', actor: 'Admin', target: '0x8a7f...3d2e', time: 'Just now' },
