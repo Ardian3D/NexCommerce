@@ -1,8 +1,10 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { getUserByWallet, markIdentityActivated } from '@/lib/actions/auth'
 import { motion } from 'framer-motion'
 import {
   BadgeCheck,
@@ -27,8 +29,6 @@ const gridBackground = {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const WALLET = '8XH...K9P'
-
 const timeline = [
   { label: 'Submitted', date: '10 May 2025', state: 'done' as const },
   { label: 'Under Review', date: '12 May 2025', state: 'done' as const },
@@ -49,6 +49,17 @@ function ActivatedContent() {
   const role = params.get('role') === 'seller' ? 'seller' : 'buyer'
   const isSeller = role === 'seller'
   const dashboardLabel = isSeller ? 'Go to Seller Dashboard' : 'Go to Buyer Dashboard'
+  const { publicKey } = useWallet()
+  const [userData, setUserData] = useState<{ fullName: string | null; country: string | null; photoUrl: string | null } | null>(null)
+
+  useEffect(() => {
+    if (!publicKey) return
+    const address = publicKey.toBase58()
+    markIdentityActivated(address)
+    getUserByWallet(address).then((u) => {
+      if (u) setUserData({ fullName: u.fullName, country: u.country, photoUrl: u.photoUrl })
+    })
+  }, [publicKey])
 
   return (
     <div className="min-h-screen bg-foreground p-2 sm:p-3">
@@ -60,7 +71,7 @@ function ActivatedContent() {
         />
 
         <div className="relative z-10 flex min-h-[calc(100vh-1rem)] flex-col">
-          <WalletNavbar address={WALLET} />
+          <WalletNavbar />
 
           <section className="relative px-6 pb-16 pt-8 md:px-10">
             <ConfettiBurst />
@@ -160,11 +171,11 @@ function ActivatedContent() {
               >
                 <IdentityCard
                   role={role}
-                  fullName={isSeller ? 'Aim Labs' : 'Jessica Hartono'}
-                  photo={null}
-                  wallet="3xTc...RLp2"
-                  country="Indonesia"
-                  memberSince="May 13, 2025"
+                  fullName={userData?.fullName ?? '—'}
+                  photo={userData?.photoUrl ?? null}
+                  wallet={publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : '—'}
+                  country={userData?.country ?? '—'}
+                  memberSince={new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   trustScore={60}
                   tier="Starter"
                 />

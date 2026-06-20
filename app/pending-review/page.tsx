@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Clock, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletNavbar } from '@/components/wallet-navbar'
 import { Footer } from '@/components/footer'
+import { getUserByWallet } from '@/lib/actions/auth'
 
 const gridBackground = {
   backgroundImage:
@@ -14,8 +16,6 @@ const gridBackground = {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const WALLET = '8XH...K9P'
-
 const timeline = [
   { label: 'Submitted', done: true },
   { label: 'Pending Review', done: true, active: true },
@@ -25,12 +25,26 @@ const timeline = [
 
 export default function PendingReviewPage() {
   const router = useRouter()
+  const { publicKey } = useWallet()
   const [dots, setDots] = useState(1)
 
   useEffect(() => {
     const id = setInterval(() => setDots((d) => (d % 3) + 1), 500)
     return () => clearInterval(id)
   }, [])
+
+  // Poll setiap 10 detik — jika admin sudah approve, redirect ke identity-activated
+  useEffect(() => {
+    if (!publicKey) return
+    const id = setInterval(async () => {
+      const user = await getUserByWallet(publicKey.toBase58())
+      if (user?.verificationStatus === 'approved') {
+        clearInterval(id)
+        router.push(`/identity-activated?role=${user.role}`)
+      }
+    }, 10000)
+    return () => clearInterval(id)
+  }, [publicKey, router])
 
   return (
     <div className="min-h-screen bg-foreground p-2 sm:p-3">
@@ -42,7 +56,7 @@ export default function PendingReviewPage() {
         />
 
         <div className="relative z-10 flex min-h-[calc(100vh-1rem)] flex-col">
-          <WalletNavbar address={WALLET} />
+          <WalletNavbar />
 
           <section className="relative flex flex-1 items-center justify-center px-6 py-20">
             <motion.div

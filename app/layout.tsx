@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Bebas_Neue, Inter, JetBrains_Mono } from 'next/font/google'
+import { SolanaProvider } from '@/components/providers/solana-provider'
 import './globals.css'
 
 const inter = Inter({ variable: '--font-sans', subsets: ['latin'] })
@@ -49,7 +50,9 @@ export default function RootLayout({
       className={`${inter.variable} ${bebasNeue.variable} ${jetbrainsMono.variable} bg-foreground`}
     >
       <body className="font-sans antialiased">
-        {children}
+        <SolanaProvider>
+          {children}
+        </SolanaProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

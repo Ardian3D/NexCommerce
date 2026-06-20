@@ -22,11 +22,9 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import {
-  sellerOrders,
-  sellerTabCounts,
-  sellerOrderOverview,
   statusStyles,
   type SellerOrder,
+  type SellerOverview,
   type OrderStatus,
 } from '@/lib/seller-orders'
 
@@ -50,7 +48,22 @@ const STATUS_FILTERS: Array<{ label: 'All Orders' | OrderStatus; dot: string }> 
   { label: 'Cancelled', dot: 'bg-red-500' },
 ]
 
-export function SellerOrdersClient() {
+const defaultTabCounts: Record<'All Orders' | OrderStatus, number> = {
+  'All Orders': 0, Pending: 0, Paid: 0, Shipped: 0, Delivered: 0, Completed: 0, Cancelled: 0,
+}
+const defaultOverview: SellerOverview = {
+  totalOrders: 0, totalRevenue: 0, pendingOrders: 0, awaitingShipment: 0, completedOrders: 0,
+}
+
+export function SellerOrdersClient({
+  orders: sellerOrders = [],
+  tabCounts: sellerTabCounts = defaultTabCounts,
+  overview: sellerOrderOverview = defaultOverview,
+}: {
+  orders?: SellerOrder[]
+  tabCounts?: Record<'All Orders' | OrderStatus, number>
+  overview?: SellerOverview
+}) {
   const [activeTab, setActiveTab] = useState<'All Orders' | OrderStatus>('All Orders')
   const [query, setQuery] = useState('')
 

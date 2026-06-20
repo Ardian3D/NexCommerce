@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { products, tierStyles, type Product } from '@/lib/products'
+import { tierStyles, type Product } from '@/lib/products'
 import {
   LayoutGrid,
   Monitor,
@@ -39,7 +39,7 @@ const categories = [
   { label: 'More', icon: MoreHorizontal },
 ]
 
-export function MarketContent() {
+export function MarketContent({ products }: { products: Product[] }) {
   const [activeCat, setActiveCat] = useState('All')
   const [view, setView] = useState<'grid' | 'list'>('grid')
 
@@ -48,7 +48,7 @@ export function MarketContent() {
       activeCat === 'All'
         ? products
         : products.filter((p) => p.category === activeCat),
-    [activeCat],
+    [activeCat, products],
   )
 
   return (

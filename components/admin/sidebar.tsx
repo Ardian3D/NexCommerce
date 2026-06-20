@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -22,7 +23,10 @@ import {
   LifeBuoy,
   Headphones,
   X,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react'
+import { createSupportTicket } from '@/lib/actions/admin'
 
 type NavItem = {
   label: string
@@ -77,6 +81,71 @@ const groups: NavGroup[] = [
   },
 ]
 
+function ContactSupportModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ name: '', email: '', category: 'General', description: '' })
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    await createSupportTicket(form)
+    setLoading(false)
+    setDone(true)
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <button onClick={onClose} className="absolute right-4 top-4 text-slate-400 hover:text-slate-700">
+          <X className="h-5 w-5" />
+        </button>
+
+        {done ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+            <p className="text-lg font-bold text-slate-800">Ticket Submitted!</p>
+            <p className="text-sm text-slate-500">Our support team will get back to you shortly.</p>
+            <button onClick={onClose} className="mt-2 rounded-xl bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-700">
+              Close
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="mb-4 text-lg font-bold text-slate-800">Contact Support</h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input required placeholder="Your name" value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-violet-400" />
+              <input required type="email" placeholder="Email address" value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-violet-400" />
+              <select value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-violet-400">
+                <option>General</option>
+                <option>Payment Issue</option>
+                <option>Account Problem</option>
+                <option>Technical Bug</option>
+                <option>Verification Issue</option>
+                <option>Other</option>
+              </select>
+              <textarea required rows={4} placeholder="Describe your issue..." value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-violet-400 resize-none" />
+              <button type="submit" disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60">
+                {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</> : 'Submit Ticket'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function AdminSidebar({
   open = false,
   onClose,
@@ -85,6 +154,7 @@ export function AdminSidebar({
   onClose?: () => void
 }) {
   const pathname = usePathname()
+  const [supportOpen, setSupportOpen] = useState(false)
 
   return (
     <>
@@ -166,13 +236,18 @@ export function AdminSidebar({
             <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
               Contact our support team
             </p>
-            <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-95">
+            <button
+              onClick={() => setSupportOpen(true)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-95"
+            >
               <Headphones className="h-4 w-4" />
               Contact Support
             </button>
           </div>
         </div>
       </aside>
+
+      {supportOpen && <ContactSupportModal onClose={() => setSupportOpen(false)} />}
     </>
   )
 }

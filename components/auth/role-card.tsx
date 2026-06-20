@@ -1,8 +1,11 @@
 'use client'
 
-import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, type Variants } from 'framer-motion'
-import { ShoppingCart, Store, BadgeCheck, ArrowRight, Check } from 'lucide-react'
+import { ShoppingCart, Store, BadgeCheck, ArrowRight, Check, Loader2 } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { createUserWithRole } from '@/lib/actions/auth'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -29,6 +32,16 @@ const cardVariants: Variants = {
 export function RoleCard({ role, index }: { role: Role; index: number }) {
   const Icon = role.icon
   const isSeller = role.accent === 'seller'
+  const router = useRouter()
+  const { publicKey } = useWallet()
+  const [saving, setSaving] = useState(false)
+
+  async function handleSelectRole() {
+    if (!publicKey) return
+    setSaving(true)
+    await createUserWithRole(publicKey.toBase58(), role.id)
+    router.push(role.href)
+  }
 
   // Scoped accent classes so each card themes itself.
   const ring = isSeller ? 'text-[var(--seller)]' : 'text-primary'
@@ -97,17 +110,22 @@ export function RoleCard({ role, index }: { role: Role; index: number }) {
       </ul>
 
       {/* Neobrutalist CTA */}
-      <Link
-        href={role.href}
-        className={`group/btn mt-9 inline-flex items-center justify-center gap-2 rounded-full border-2 border-foreground ${btnBg} px-6 py-4 shadow-[5px_5px_0_0_var(--color-foreground)] transition-all duration-200 hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_var(--color-foreground)]`}
+      <button
+        type="button"
+        onClick={handleSelectRole}
+        disabled={saving}
+        className={`group/btn mt-9 inline-flex items-center justify-center gap-2 rounded-full border-2 border-foreground ${btnBg} px-6 py-4 shadow-[5px_5px_0_0_var(--color-foreground)] transition-all duration-200 hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_var(--color-foreground)] disabled:cursor-not-allowed disabled:opacity-70`}
       >
         <span
           className={`flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] ${btnFg}`}
         >
-          {role.cta}
-          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover/btn:translate-x-1" />
+          {saving ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+          ) : (
+            <>{role.cta}<ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover/btn:translate-x-1" /></>
+          )}
         </span>
-      </Link>
+      </button>
     </motion.div>
   )
 }

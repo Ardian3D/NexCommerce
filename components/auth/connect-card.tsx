@@ -1,21 +1,56 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Loader2 } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { getUserByWallet } from '@/lib/actions/auth'
 import { Sparkle } from '@/components/sparkle'
 
 export function ConnectCard() {
   const router = useRouter()
-  const [connecting, setConnecting] = useState(false)
+  const { wallets, wallet, select, connect, connecting, connected, publicKey } = useWallet()
+
+  // Setelah connected, cek status user di DB dan redirect sesuai kondisi
+  useEffect(() => {
+    if (!connected || !publicKey) return
+    getUserByWallet(publicKey.toBase58()).then((user) => {
+      if (!user) return router.push('/selection-role')
+
+      const { role, verificationStatus, identityActivatedAt } = user
+
+      if (verificationStatus === 'unverified')
+        return router.push(`/verify?role=${role}`)
+
+      if (verificationStatus === 'pending')
+        return router.push('/pending-review')
+
+      if (verificationStatus === 'approved' && !identityActivatedAt)
+        return router.push(`/identity-activated?role=${role}`)
+
+      // approved + sudah lihat identity-activated → langsung ke dashboard
+      router.push(role === 'seller' ? '/seller/dashboard' : '/buyer/dashboard')
+    })
+  }, [connected, publicKey, router])
+
+  // Panggil connect() setelah wallet benar-benar ter-select (butuh 1 render cycle)
+  useEffect(() => {
+    if (wallet) connect().catch(() => {})
+  }, [wallet, connect])
 
   function handleConnect() {
-    // Frontend-only for now — backend wallet logic comes later.
-    // Simulate the connection, then move the user to role selection.
-    setConnecting(true)
-    setTimeout(() => router.push('/selection-role'), 1800)
+    const phantom = wallets.find(
+      (w) => w.adapter.name === 'Phantom' || w.adapter.name.toLowerCase().includes('phantom')
+    )
+
+    if (!phantom) {
+      window.open('https://phantom.app/', '_blank')
+      return
+    }
+
+    select(phantom.adapter.name)
   }
 
   return (
@@ -51,17 +86,17 @@ export function ConnectCard() {
         <button
           type="button"
           onClick={handleConnect}
-          disabled={connecting}
+          disabled={connecting || connected}
           className="group mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-primary px-6 py-4 font-display text-lg font-black uppercase tracking-wide text-primary-foreground transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/30 disabled:cursor-not-allowed disabled:opacity-80"
         >
-          {connecting ? (
+          {connecting || connected ? (
             <>
               <Loader2 className="h-6 w-6 animate-spin" />
               Connecting…
             </>
           ) : (
             <>
-              <Image  src="/phantom-logo.png" alt="Phantom" width={55} height={55} className='mr-4' />
+              <Image src="/phantom-logo.png" alt="Phantom" width={55} height={55} className='mr-4' />
               Connect Phantom
             </>
           )}

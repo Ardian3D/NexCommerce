@@ -2,6 +2,8 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { submitVerification } from '@/lib/actions/auth'
 import { AnimatePresence, motion } from 'framer-motion'
 import { WalletNavbar } from '@/components/wallet-navbar'
 import { Footer } from '@/components/footer'
@@ -22,7 +24,6 @@ const gridBackground = {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const WALLET = '8XH...K9P'
 
 const initialState: FormState = {
   fullName: '',
@@ -80,6 +81,8 @@ function VerifyContent() {
   const router = useRouter()
   const params = useSearchParams()
   const role = params.get('role') === 'seller' ? 'seller' : 'buyer'
+  const { publicKey } = useWallet()
+  const walletAddress = publicKey ? publicKey.toBase58() : '—'
   const accent = role === 'seller' ? 'var(--seller)' : 'var(--primary)'
 
   const [step, setStep] = useState(1)
@@ -95,9 +98,11 @@ function VerifyContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    if (!publicKey) return
     setSubmitting(true)
-    setTimeout(() => router.push('/pending-review'), 1800)
+    await submitVerification(publicKey.toBase58(), values, role)
+    router.push('/pending-review')
   }
 
   const heading = headings[step]
@@ -113,7 +118,7 @@ function VerifyContent() {
         />
 
         <div className="relative z-10 flex min-h-[calc(100vh-1rem)] flex-col">
-          <WalletNavbar address={WALLET} />
+          <WalletNavbar address={walletAddress} />
 
           <section className="relative flex-1 px-6 pb-20 pt-6 md:px-10">
             <div className="mx-auto max-w-7xl">
@@ -178,7 +183,7 @@ function VerifyContent() {
                           onChange={patch}
                           onNext={() => goTo(3)}
                           onBack={() => goTo(1)}
-                          wallet={WALLET}
+                          wallet={walletAddress}
                         />
                       )}
                       {step === 3 && (
@@ -215,7 +220,7 @@ function VerifyContent() {
                       role={role}
                       fullName={values.fullName}
                       photo={values.photo}
-                      wallet={WALLET}
+                      wallet={walletAddress}
                       country={values.country}
                       categories={values.categories}
                       status={cardStatus}

@@ -1,3 +1,4 @@
+import { prisma } from './db'
 import type { OrderStatus } from '@/lib/orders'
 import { statusStyles, statusDot } from '@/lib/orders'
 
@@ -14,93 +15,104 @@ export type SellerOrder = {
   buyer: string
   orderedAt: string
   status: OrderStatus
-  /** Secondary line under the status badge */
   meta: {
     label: string
-    /** Optional emphasized value (e.g. tracking number or date) */
     value?: string
-    /** Optional badge: 'solana' renders the Solana logo + label */
     chip?: 'solana'
   }
 }
 
-export const sellerOrders: SellerOrder[] = [
-  {
-    id: '#NC-2025-05-24-8921',
-    productSlug: 'logitech-g-pro-x-superlight-2',
-    productName: 'Logitech G Pro X Superlight 2',
-    image: '/store/product-mouse.png',
-    unitPrice: 149.99,
-    qty: 1,
-    buyer: 'PhantomUser',
-    orderedAt: 'May 24, 2025 · 10:42 AM',
-    status: 'Paid',
-    meta: { label: 'Payment Confirmed', chip: 'solana' },
-  },
-  {
-    id: '#NC-2025-05-23-7754',
-    productSlug: 'apple-airpods-pro-2nd-gen',
-    productName: 'Apple AirPods Pro 2nd Gen',
-    image: '/market/airpods.png',
-    unitPrice: 189.99,
-    qty: 1,
-    buyer: 'SolanaTrader',
-    orderedAt: 'May 23, 2025 · 03:15 PM',
-    status: 'Shipped',
-    meta: { label: 'Tracking ID', value: '1Z999AA10123456784' },
-  },
-  {
-    id: '#NC-2025-05-22-5532',
-    productSlug: 'keychron-k8-pro-mechanical-keyboard',
-    productName: 'Keychron K8 Pro Mechanical Keyboard',
-    image: '/market/keyboard.png',
-    unitPrice: 89.99,
-    qty: 1,
-    buyer: 'Web3Gamer',
-    orderedAt: 'May 22, 2025 · 11:09 AM',
-    status: 'Delivered',
-    meta: { label: 'Delivered on', value: 'May 24, 2025' },
-  },
-  {
-    id: '#NC-2025-05-21-2210',
-    productSlug: 'lg-ultragear-27-144hz-gaming-monitor',
-    productName: 'LG UltraGear 27" 144Hz Gaming Monitor',
-    image: '/market/monitor.png',
-    unitPrice: 229.99,
-    qty: 1,
-    buyer: 'DefiHunter',
-    orderedAt: 'May 21, 2025 · 09:20 AM',
-    status: 'Pending',
-    meta: { label: 'Awaiting payment' },
-  },
-  {
-    id: '#NC-2025-05-20-1099',
-    productSlug: 'secretlab-titan-evo-2022',
-    productName: 'Secretlab Titan Evo 2022',
-    image: '/market/chair.png',
-    unitPrice: 449.99,
-    qty: 1,
-    buyer: 'NFTCollector',
-    orderedAt: 'May 20, 2025 · 02:45 PM',
-    status: 'Cancelled',
-    meta: { label: 'Cancelled on', value: 'May 21, 2025' },
-  },
-]
-
-export const sellerTabCounts: Record<'All Orders' | OrderStatus, number> = {
-  'All Orders': 24,
-  Pending: 7,
-  Paid: 8,
-  Shipped: 5,
-  Delivered: 3,
-  Completed: 18,
-  Cancelled: 2,
+export type SellerOverview = {
+  totalOrders: number
+  totalRevenue: number
+  pendingOrders: number
+  awaitingShipment: number
+  completedOrders: number
 }
 
-export const sellerOrderOverview = {
-  totalOrders: 24,
-  totalRevenue: 5689.7,
-  pendingOrders: 7,
-  awaitingShipment: 5,
-  completedOrders: 18,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSellerOrder(row: any): SellerOrder {
+  return {
+    id: row.id,
+    productSlug: row.productSlug ?? '',
+    productName: row.productName ?? '',
+    image: row.image ?? '',
+    unitPrice: Number(row.amount) / row.items,
+    qty: row.items,
+    buyer: row.buyer?.fullName ?? row.buyer?.walletAddress?.slice(0, 8) ?? '',
+    orderedAt: new Date(row.orderedAt).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    status: row.status as OrderStatus,
+    meta: {
+      label: row.metaLabel ?? '',
+      value: row.metaValue ?? undefined,
+      chip: row.paymentChip === 'solana' ? 'solana' : undefined,
+    },
+  }
+}
+
+const buyerSelect = {
+  select: { fullName: true, walletAddress: true },
+}
+
+export async function getOrdersBySeller(sellerId: string): Promise<SellerOrder[]> {
+  const rows = await prisma.order.findMany({
+    where: { sellerId },
+    include: { buyer: buyerSelect },
+    orderBy: { orderedAt: 'desc' },
+  })
+  return rows.map(toSellerOrder)
+}
+
+export async function getSellerOverview(sellerId: string): Promise<SellerOverview> {
+  const [totalOrders, revenue, pendingOrders, awaitingShipment, completedOrders] =
+    await Promise.all([
+      prisma.order.count({ where: { sellerId } }),
+      prisma.order.aggregate({ where: { sellerId }, _sum: { amount: true } }),
+      prisma.order.count({ where: { sellerId, status: 'Pending' } }),
+      prisma.order.count({ where: { sellerId, status: 'Paid' } }),
+      prisma.order.count({ where: { sellerId, status: 'Completed' } }),
+    ])
+
+  return {
+    totalOrders,
+    totalRevenue: Number(revenue._sum.amount ?? 0),
+    pendingOrders,
+    awaitingShipment,
+    completedOrders,
+  }
+}
+
+export async function getSellerTabCounts(
+  sellerId: string
+): Promise<Record<'All Orders' | OrderStatus, number>> {
+  const groups = await prisma.order.groupBy({
+    by: ['status'],
+    where: { sellerId },
+    _count: true,
+  })
+
+  const base: Record<string, number> = {
+    'All Orders': 0,
+    Pending: 0,
+    Paid: 0,
+    Shipped: 0,
+    Delivered: 0,
+    Completed: 0,
+    Cancelled: 0,
+  }
+
+  let total = 0
+  for (const g of groups) {
+    base[g.status] = g._count
+    total += g._count
+  }
+  base['All Orders'] = total
+
+  return base as Record<'All Orders' | OrderStatus, number>
 }
