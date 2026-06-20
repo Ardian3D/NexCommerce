@@ -165,7 +165,7 @@ export function OrdersClient({
 
       {/* Right rail */}
       <aside className="space-y-6">
-        <OrderSummaryCard />
+        <OrderSummaryCard summary={orderSummary} />
         <FiltersCard />
       </aside>
     </div>
@@ -228,7 +228,7 @@ function OrderCard({ order }: { order: Order }) {
   )
 }
 
-function OrderSummaryCard() {
+function OrderSummaryCard({ summary: orderSummary }: { summary: OrderSummary }) {
   const rows = [
     { icon: CalendarDays, label: 'Total Orders', value: String(orderSummary.totalOrders) },
     { icon: ClipboardCheck, label: 'Total Spent', value: `$${orderSummary.totalSpent.toFixed(2)} USDC` },
