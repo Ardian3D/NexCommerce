@@ -16,23 +16,28 @@ export function ConnectCard() {
   // Setelah connected, cek status user di DB dan redirect sesuai kondisi
   useEffect(() => {
     if (!connected || !publicKey) return
-    getUserByWallet(publicKey.toBase58()).then((user) => {
-      if (!user) return router.push('/selection-role')
 
-      const { role, verificationStatus, identityActivatedAt } = user
+    getUserByWallet(publicKey.toBase58())
+      .then((user) => {
+        if (!user) return router.push('/selection-role')
 
-      if (verificationStatus === 'unverified')
-        return router.push(`/verify?role=${role}`)
+        const { role, verificationStatus, identityActivatedAt } = user
 
-      if (verificationStatus === 'pending')
-        return router.push('/pending-review')
+        if (verificationStatus === 'unverified')
+          return router.push(`/verify?role=${role}`)
 
-      if (verificationStatus === 'approved' && !identityActivatedAt)
-        return router.push(`/identity-activated?role=${role}`)
+        if (verificationStatus === 'pending')
+          return router.push('/pending-review')
 
-      // approved + sudah lihat identity-activated → langsung ke dashboard
-      router.push(role === 'seller' ? '/seller/dashboard' : '/buyer/dashboard')
-    })
+        if (verificationStatus === 'approved' && !identityActivatedAt)
+          return router.push(`/identity-activated?role=${role}`)
+
+        router.push(role === 'seller' ? '/seller/dashboard' : '/buyer/dashboard')
+      })
+      .catch(() => {
+        // DB belum tersambung atau error — fallback ke selection-role
+        router.push('/selection-role')
+      })
   }, [connected, publicKey, router])
 
   // Panggil connect() setelah wallet benar-benar ter-select (butuh 1 render cycle)
