@@ -182,7 +182,7 @@ export function SellerOrdersClient({
 
       {/* Right rail */}
       <aside className="space-y-6">
-        <OrderOverviewCard />
+        <OrderOverviewCard overview={sellerOrderOverview} />
         <FiltersCard />
       </aside>
     </div>
@@ -282,7 +282,7 @@ function SellerOrderCard({ order }: { order: SellerOrder }) {
   )
 }
 
-function OrderOverviewCard() {
+function OrderOverviewCard({ overview: sellerOrderOverview }: { overview: SellerOverview }) {
   const rows = [
     { icon: CalendarDays, label: 'Total Orders', value: String(sellerOrderOverview.totalOrders) },
     { icon: DollarSign, label: 'Total Revenue', value: `$${sellerOrderOverview.totalRevenue.toFixed(2)} USDC` },
