@@ -2,6 +2,8 @@ import { AdminShell } from '@/components/admin/shell'
 import { getAdminProducts } from '@/lib/actions/admin'
 import { Package, BadgeCheck } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 const tierStyle: Record<string, string> = {
   Elite: 'bg-violet-100 text-violet-700',
   Ascent: 'bg-blue-100 text-blue-700',

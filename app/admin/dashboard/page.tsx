@@ -11,6 +11,8 @@ import {
 import { AdminReportsSummary, AdminTopReportReasons } from '@/components/admin/reports'
 import { getAdminStats, getPendingVerifications, getRecentOrders } from '@/lib/actions/admin'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Admin Dashboard | NexCommerce',
   description: 'Overview of NexCommerce platform activities.',

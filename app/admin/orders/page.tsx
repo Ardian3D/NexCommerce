@@ -2,6 +2,8 @@ import { AdminShell } from '@/components/admin/shell'
 import { getAdminOrders } from '@/lib/actions/admin'
 import { ClipboardList } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 const statusStyle: Record<string, string> = {
   Pending: 'bg-amber-100 text-amber-700',
   Paid: 'bg-emerald-100 text-emerald-700',

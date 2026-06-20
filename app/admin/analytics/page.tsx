@@ -2,6 +2,8 @@ import { AdminShell } from '@/components/admin/shell'
 import { getAdminStats } from '@/lib/actions/admin'
 import { Users, Package, ClipboardList, DollarSign, ShieldCheck } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminAnalyticsPage() {
   const stats = await getAdminStats()
   const cards = [
