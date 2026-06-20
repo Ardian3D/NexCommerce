@@ -118,7 +118,7 @@ function VerifyContent() {
         />
 
         <div className="relative z-10 flex min-h-[calc(100vh-1rem)] flex-col">
-          <WalletNavbar address={walletAddress} />
+          <WalletNavbar />
 
           <section className="relative flex-1 px-6 pb-20 pt-6 md:px-10">
             <div className="mx-auto max-w-7xl">
