@@ -5,8 +5,12 @@ import { ProductDetail } from '@/components/product/product-detail'
 import { getProductBySlug, getProductSlugs } from '@/lib/products'
 
 export async function generateStaticParams() {
-  const slugs = await getProductSlugs()
-  return slugs.map((slug) => ({ slug }))
+  try {
+    const slugs = await getProductSlugs()
+    return slugs.map((slug) => ({ slug }))
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({
