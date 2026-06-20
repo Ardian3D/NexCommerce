@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Menu, Calendar, Bell, ChevronDown, ShieldCheck,
-  CheckCircle2, Clock, LogOut, User, Settings,
+  Clock, LogOut, Settings,
 } from 'lucide-react'
 import { getPendingVerifications, getPendingCount } from '@/lib/actions/admin'
 import type { PendingUser } from '@/lib/actions/admin'
@@ -29,7 +29,7 @@ export function AdminTopbar({ onMenuClick }: { onMenuClick?: () => void }) {
     if (notifOpen && pendingUsers.length === 0) {
       getPendingVerifications().then(setPendingUsers)
     }
-  }, [notifOpen])
+  }, [notifOpen, pendingUsers.length])
 
   // Close dropdowns when clicking outside
   useEffect(() => {

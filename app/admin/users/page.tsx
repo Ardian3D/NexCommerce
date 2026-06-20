@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AdminShell } from '@/components/admin/shell'
 import { getAllUsers, type AdminUserRow } from '@/lib/actions/admin'
-import { Search, Users, ShieldCheck, Store, ShoppingCart } from 'lucide-react'
+import { Search, Users, Store, ShoppingCart } from 'lucide-react'
 
 const statusStyle: Record<string, string> = {
   approved: 'bg-emerald-100 text-emerald-700',
