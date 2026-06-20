@@ -1,6 +1,6 @@
 import { BuyerShell } from '@/components/buyer/shell'
 import { PaymentClient } from '@/components/payment/payment-client'
-import { products } from '@/lib/products'
+import { getProducts } from '@/lib/products'
 
 export const metadata = {
   title: 'Payment | NexCommerce',
@@ -13,6 +13,7 @@ export default async function PaymentPage({
   searchParams: Promise<{ product?: string; qty?: string }>
 }) {
   const { product: slug, qty } = await searchParams
+  const products = await getProducts()
 
   const product =
     products.find((p) => p.slug === slug) ??
