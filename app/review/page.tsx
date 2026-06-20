@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { BuyerShell } from '@/components/buyer/shell'
 import { ReviewClient } from '@/components/review/review-client'
-import { getProductBySlug, products } from '@/lib/products'
-import { orders, type Order } from '@/lib/orders'
+import { getProductBySlug, getProducts } from '@/lib/products'
+import { type Order } from '@/lib/orders'
 
 export const metadata: Metadata = {
   title: 'Write a Review · NexCommerce',
@@ -17,10 +17,33 @@ export default async function ReviewPage({
   searchParams: Promise<{ product?: string }>
 }) {
   const { product: slug } = await searchParams
-  const product = getProductBySlug(slug ?? DEFAULT_SLUG) ?? getProductBySlug(DEFAULT_SLUG) ?? products[2]
+  const products = await getProducts()
+  
+  const product = await getProductBySlug(slug ?? DEFAULT_SLUG) ?? await getProductBySlug(DEFAULT_SLUG) ?? products[2]
 
-  const order: Order =
-    orders.find((o) => o.productSlug === product.slug) ?? orders[0]
+  // Create a default order object for review page
+  const order: Order = {
+    id: 'default-order',
+    productSlug: product.slug,
+    productName: product.name,
+    productSubtitle: product.subtitle,
+    seller: product.seller,
+    image: product.image,
+    status: 'Completed',
+    amount: product.price,
+    items: 1,
+    orderedAt: new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    fulfillment: {
+      label: 'Delivered',
+      value: 'Delivered',
+    },
+  }
 
   return (
     <BuyerShell>

@@ -65,10 +65,30 @@ const stats: Stat[] = [
   },
 ]
 
-export function AdminStatCards() {
+export function AdminStatCards({
+  totalUsers,
+  totalProducts,
+  totalOrders,
+  totalRevenue,
+  avgTrustScore,
+}: {
+  totalUsers?: number
+  totalProducts?: number
+  totalOrders?: number
+  totalRevenue?: number
+  avgTrustScore?: number
+}) {
+  const live = [
+    { ...stats[0], value: totalUsers !== undefined ? totalUsers.toLocaleString() : stats[0].value },
+    { ...stats[1], value: totalProducts !== undefined ? totalProducts.toLocaleString() : stats[1].value },
+    { ...stats[2], value: totalOrders !== undefined ? totalOrders.toLocaleString() : stats[2].value },
+    { ...stats[3], value: totalRevenue !== undefined ? `$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : stats[3].value },
+    { ...stats[4], value: avgTrustScore !== undefined ? `${avgTrustScore} / 100` : stats[4].value },
+  ]
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-      {stats.map((s) => {
+      {live.map((s) => {
         const gradId = `spark-${s.label.replace(/[^a-z]/gi, '')}`
         return (
           <div key={s.label} className="rounded-2xl border border-border bg-card p-4">

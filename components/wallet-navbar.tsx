@@ -3,13 +3,37 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, LogOut, Copy } from 'lucide-react'
+import { ChevronDown, LogOut, Copy, Check } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
 
 const links = ['Products', 'Categories', 'About', 'Contact']
 
-export function WalletNavbar({ address = '8XJ7...K2QP' }: { address?: string }) {
+function shortenAddress(address: string) {
+  return `${address.slice(0, 4)}...${address.slice(-4)}`
+}
+
+export function WalletNavbar() {
   const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const { publicKey, disconnect } = useWallet()
+  const router = useRouter()
+
+  const address = publicKey ? publicKey.toBase58() : null
+  const displayAddress = address ? shortenAddress(address) : '—'
+
+  async function handleCopy() {
+    if (!address) return
+    await navigator.clipboard.writeText(address)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleDisconnect() {
+    await disconnect()
+    router.push('/connect')
+  }
 
   return (
     <motion.header
@@ -67,7 +91,7 @@ export function WalletNavbar({ address = '8XJ7...K2QP' }: { address?: string }) 
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
               </span>
               <span className="font-mono text-[11px] text-foreground/55">
-                {address}
+                {displayAddress}
               </span>
             </span>
 
@@ -90,18 +114,24 @@ export function WalletNavbar({ address = '8XJ7...K2QP' }: { address?: string }) 
               >
                 <button
                   type="button"
+                  onClick={handleCopy}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/5"
                 >
-                  <Copy className="h-4 w-4" />
-                  Copy Address
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {copied ? 'Copied!' : 'Copy Address'}
                 </button>
-                <Link
-                  href="/connect"
+                <button
+                  type="button"
+                  onClick={handleDisconnect}
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                 >
                   <LogOut className="h-4 w-4" />
                   Disconnect
-                </Link>
+                </button>
               </motion.div>
             )}
           </AnimatePresence>

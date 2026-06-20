@@ -20,10 +20,9 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import {
-  orders as allOrders,
-  orderSummary,
   statusStyles,
   type Order,
+  type OrderSummary,
   type OrderStatus,
 } from '@/lib/orders'
 
@@ -47,7 +46,13 @@ const STATUS_FILTERS: Array<{ label: 'All Orders' | OrderStatus; dot: string }> 
   { label: 'Cancelled', dot: 'bg-red-500' },
 ]
 
-export function OrdersClient() {
+export function OrdersClient({
+  orders: allOrders = [],
+  summary: orderSummary = { totalOrders: 0, totalSpent: 0, deliveredOrders: 0, pendingOrders: 0, cancelledOrders: 0 },
+}: {
+  orders?: Order[]
+  summary?: OrderSummary
+}) {
   const [activeTab, setActiveTab] = useState<'All Orders' | OrderStatus>('All Orders')
   const [query, setQuery] = useState('')
 
@@ -160,7 +165,7 @@ export function OrdersClient() {
 
       {/* Right rail */}
       <aside className="space-y-6">
-        <OrderSummaryCard />
+        <OrderSummaryCard summary={orderSummary} />
         <FiltersCard />
       </aside>
     </div>
@@ -223,7 +228,7 @@ function OrderCard({ order }: { order: Order }) {
   )
 }
 
-function OrderSummaryCard() {
+function OrderSummaryCard({ summary: orderSummary }: { summary: OrderSummary }) {
   const rows = [
     { icon: CalendarDays, label: 'Total Orders', value: String(orderSummary.totalOrders) },
     { icon: ClipboardCheck, label: 'Total Spent', value: `$${orderSummary.totalSpent.toFixed(2)} USDC` },

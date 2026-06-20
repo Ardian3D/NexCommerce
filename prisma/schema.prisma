@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  buyer
+  seller
+  admin
+}
+
+enum Tier {
+  Starter
+  Ascent
+  Elite
+  Titanium
+}
+
+enum ProductTier {
+  Elite
+  Ascent
+  Titanium
+}
+
+enum OrderStatus {
+  Pending
+  Paid
+  Shipped
+  Delivered
+  Completed
+  Cancelled
+}
+
+enum BadgeTone {
+  hot
+  new
+  best
+}
+
+enum VerificationStatus {
+  unverified
+  pending
+  approved
+}
+
+model User {
+  id                      String    @id @default(uuid())
+  walletAddress           String    @unique
+  role                    Role
+  fullName                String?
+  email                   String?   @unique
+  country                 String?
+  telegram                String?
+  twitter                 String?
+  bio                     String?
+  photoUrl                String?
+  termsAccepted           Boolean            @default(false)
+  verificationStatus      VerificationStatus @default(unverified)
+  verificationCompletedAt DateTime?
+  identityActivatedAt     DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  sellerProfile  SellerProfile?
+  buyerProfile   BuyerProfile?
+  products       Product[]
+  ordersAsBuyer  Order[]        @relation("BuyerOrders")
+  ordersAsSeller Order[]        @relation("SellerOrders")
+
+  @@map("users")
+}
+
+model SellerProfile {
+  sellerId          String   @id
+  storeName         String?
+  storeDescription  String?
+  storeWebsite      String?
+  businessCategory  String?
+  yearsExperience   String?
+  sellerCategories  Json?
+  trustScore        Int      @default(0)
+  currentTier       Tier     @default(Starter)
+  memberSince       String?
+  responseTime      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [sellerId], references: [id])
+
+  @@map("seller_profiles")
+}
+
+model BuyerProfile {
+  buyerId             String   @id
+  occupation          String?
+  interests           String?
+  website             String?
+  discord             String?
+  linkedin            String?
+  whyJoin             String?
+  preferredCategories Json?
+  trustScore          Int      @default(0)
+  currentTier         Tier     @default(Starter)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [buyerId], references: [id])
+
+  @@map("buyer_profiles")
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  slug        String      @unique
+  name        String
+  subtitle    String?
+  sellerId    String
+  tier        ProductTier
+  score       Int?
+  price       Decimal     @db.Decimal(10, 2)
+  oldPrice    Decimal?    @db.Decimal(10, 2)
+  image       String?
+  gallery     Json?
+  category    String?
+  subcategory String?
+  inStock     Int         @default(0)
+  description Json?
+  features    Json?
+  specs       Json?
+  rating      Decimal?    @db.Decimal(3, 2)
+  reviews     Int         @default(0)
+  badgeLabel  String?
+  badgeTone   BadgeTone?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  seller User    @relation(fields: [sellerId], references: [id])
+  orders Order[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@map("products")
+}
+
+model Order {
+  id               String      @id
+  buyerId          String
+  sellerId         String
+  productId        Int?
+  productSlug      String?
+  productName      String?
+  productSubtitle  String?
+  image            String?
+  status           OrderStatus @default(Pending)
+  amount           Decimal     @db.Decimal(10, 2)
+  items            Int         @default(1)
+  orderedAt        DateTime    @default(now())
+  fulfillmentLabel String?
+  fulfillmentValue String?
+  metaLabel        String?
+  metaValue        String?
+  paymentChip      String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  buyer   User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller  User     @relation("SellerOrders", fields: [sellerId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model SupportTicket {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  category    String
+  description String
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("support_tickets")
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  buyerId   String
+  productId Int
+  createdAt DateTime @default(now())
+
+  @@unique([buyerId, productId])
+  @@index([buyerId])
+  @@map("wishlist")
+}

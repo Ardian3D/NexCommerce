@@ -1,0 +1,502 @@
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  console.log('Seeding database...')
+
+  // --- Seller Users ---
+  const sellerData = [
+    { name: 'Tech Haven', wallet: 'SEED_SELLER_1111111111111111111111111111111', memberSince: 'Mar 2024', responseTime: '2h', score: 85 },
+    { name: 'Aim Labs Store', wallet: 'SEED_SELLER_2222222222222222222222222222222', memberSince: 'May 2025', responseTime: '1h', score: 96 },
+    { name: 'NextGen Store', wallet: 'SEED_SELLER_3333333333333333333333333333333', memberSince: 'Jan 2024', responseTime: '3h', score: 88 },
+    { name: 'SoundSphere', wallet: 'SEED_SELLER_4444444444444444444444444444444', memberSince: 'Aug 2023', responseTime: '1h', score: 93 },
+    { name: 'PhotoWorld', wallet: 'SEED_SELLER_5555555555555555555555555555555', memberSince: 'Feb 2023', responseTime: '4h', score: 97 },
+    { name: 'Elite Gear Store', wallet: 'SEED_SELLER_6666666666666666666666666666666', memberSince: 'May 2025', responseTime: '1h', score: 95 },
+  ]
+
+  const sellers: Record<string, string> = {}
+
+  for (const s of sellerData) {
+    const user = await prisma.user.upsert({
+      where: { walletAddress: s.wallet },
+      update: {},
+      create: {
+        walletAddress: s.wallet,
+        role: 'seller',
+        fullName: s.name,
+        termsAccepted: true,
+        sellerProfile: {
+          create: {
+            storeName: s.name,
+            trustScore: s.score,
+            currentTier: s.score >= 95 ? 'Elite' : s.score >= 85 ? 'Ascent' : 'Starter',
+            memberSince: s.memberSince,
+            responseTime: s.responseTime,
+          },
+        },
+      },
+    })
+    sellers[s.name] = user.id
+    console.log(`  Seller: ${s.name}`)
+  }
+
+  // --- Dummy Buyer ---
+  const buyer = await prisma.user.upsert({
+    where: { walletAddress: 'SEED_BUYER_111111111111111111111111111111111' },
+    update: {},
+    create: {
+      walletAddress: 'SEED_BUYER_111111111111111111111111111111111',
+      role: 'buyer',
+      fullName: 'PhantomUser',
+      termsAccepted: true,
+      buyerProfile: { create: { trustScore: 60, currentTier: 'Starter' } },
+    },
+  })
+  console.log('  Buyer: PhantomUser')
+
+  // --- Products ---
+  const productData = [
+    {
+      slug: 'corsair-virtuoso-rgb-wireless-xt-headset',
+      name: 'Corsair Virtuoso RGB Wireless XT Headset',
+      subtitle: 'High-Fidelity Gaming Headset',
+      sellerName: 'Tech Haven',
+      tier: 'Elite' as const,
+      score: 95,
+      price: 199.99,
+      oldPrice: 249.99,
+      image: '/market/headphones.png',
+      gallery: ['/market/headphones.png'],
+      category: 'Gaming',
+      subcategory: 'Audio',
+      inStock: 12,
+      description: [
+        'Immerse yourself in premium spatial audio with the Corsair Virtuoso RGB Wireless XT, engineered for serious gamers and audiophiles alike.',
+        'Featuring slipstream wireless technology, Bluetooth connectivity, and a broadcast-grade detachable microphone for crystal-clear comms.',
+      ],
+      features: [
+        'SLIPSTREAM wireless with sub-1ms latency',
+        'Hi-Fi 24bit/96kHz audio playback',
+        'Broadcast-grade detachable microphone',
+        'Memory foam ear cushions with breathable fabric',
+        'Up to 20 hours of battery life',
+      ],
+      specs: [
+        { label: 'Connectivity', value: 'Wireless / Bluetooth / USB' },
+        { label: 'Driver', value: '50mm neodymium' },
+        { label: 'Battery Life', value: '20 hours' },
+        { label: 'Weight', value: '370g' },
+      ],
+      rating: 4.8,
+      reviews: 214,
+      badgeLabel: '20% OFF',
+      badgeTone: 'hot' as const,
+    },
+    {
+      slug: 'keychron-k8-pro-mechanical-keyboard',
+      name: 'Keychron K8 Pro Mechanical Keyboard',
+      subtitle: 'Wireless Mechanical Keyboard',
+      sellerName: 'Tech Haven',
+      tier: 'Ascent' as const,
+      score: 85,
+      price: 89.99,
+      image: '/market/keyboard.png',
+      gallery: ['/market/keyboard.png'],
+      category: 'Electronics',
+      subcategory: 'Keyboards',
+      inStock: 34,
+      description: [
+        'The Keychron K8 Pro brings QMK/VIA support to a hot-swappable, wireless mechanical keyboard built for productivity and play.',
+        'Enjoy a satisfying typing experience with Gateron switches and a durable aluminum frame.',
+      ],
+      features: [
+        'QMK/VIA fully programmable',
+        'Hot-swappable Gateron Pro switches',
+        'Bluetooth 5.1 and wired USB-C',
+        'Double-shot PBT keycaps',
+        'Up to 240 hours backlight off battery',
+      ],
+      specs: [
+        { label: 'Layout', value: 'Tenkeyless (87 keys)' },
+        { label: 'Switches', value: 'Gateron Pro Red' },
+        { label: 'Connectivity', value: 'Bluetooth / USB-C' },
+        { label: 'Battery', value: '4000mAh' },
+      ],
+      rating: 4.6,
+      reviews: 142,
+      badgeLabel: 'NEW',
+      badgeTone: 'new' as const,
+    },
+    {
+      slug: 'logitech-g-pro-x-superlight-2',
+      name: 'Logitech G Pro X Superlight 2',
+      subtitle: 'Wireless Gaming Mouse',
+      sellerName: 'Aim Labs Store',
+      tier: 'Elite' as const,
+      score: 96,
+      price: 149.99,
+      oldPrice: 179.99,
+      image: '/store/product-mouse.png',
+      gallery: ['/store/product-mouse.png'],
+      category: 'Gaming',
+      subcategory: 'Mice',
+      inStock: 8,
+      description: [
+        'The next evolution of our championship-winning mouse. The Logitech G Pro X Superlight 2 is designed in collaboration with world-class esports professionals.',
+        'Engineered for performance with LIGHTSPEED wireless, HERO 2 sensor, and weighing only 60g.',
+      ],
+      features: [
+        'LIGHTSPEED wireless with up to 95 hours battery life',
+        'HERO 2 sensor with up to 32,000 DPI',
+        'Ultra-lightweight design - only 60g',
+        'PTFE feet for smooth and effortless glide',
+        '5 programmable buttons with onboard memory',
+      ],
+      specs: [
+        { label: 'Sensor', value: 'HERO 2 (32,000 DPI)' },
+        { label: 'Weight', value: '60g' },
+        { label: 'Connectivity', value: 'LIGHTSPEED wireless' },
+        { label: 'Battery Life', value: '95 hours' },
+        { label: 'Buttons', value: '5 programmable' },
+      ],
+      rating: 4.9,
+      reviews: 320,
+      badgeLabel: '15% OFF',
+      badgeTone: 'hot' as const,
+    },
+    {
+      slug: 'lg-ultragear-27-144hz-gaming-monitor',
+      name: 'LG UltraGear 27" 144Hz Gaming Monitor',
+      subtitle: 'QHD Gaming Monitor',
+      sellerName: 'NextGen Store',
+      tier: 'Ascent' as const,
+      score: 88,
+      price: 229.99,
+      image: '/market/monitor.png',
+      gallery: ['/market/monitor.png'],
+      category: 'Electronics',
+      subcategory: 'Monitors',
+      inStock: 21,
+      description: [
+        'Gain the competitive edge with the LG UltraGear 27" QHD gaming monitor, featuring a blazing 144Hz refresh rate and 1ms response time.',
+        'NVIDIA G-SYNC compatible for tear-free, stutter-free gameplay.',
+      ],
+      features: [
+        '27" QHD (2560x1440) IPS panel',
+        '144Hz refresh rate, 1ms response',
+        'NVIDIA G-SYNC compatible',
+        'HDR10 with sRGB 99% color gamut',
+        'Adjustable height and tilt stand',
+      ],
+      specs: [
+        { label: 'Panel', value: '27" IPS QHD' },
+        { label: 'Refresh Rate', value: '144Hz' },
+        { label: 'Response Time', value: '1ms' },
+        { label: 'Ports', value: 'HDMI x2, DisplayPort' },
+      ],
+      rating: 4.7,
+      reviews: 98,
+      badgeLabel: 'NEW',
+      badgeTone: 'new' as const,
+    },
+    {
+      slug: 'apple-airpods-pro-2nd-gen',
+      name: 'Apple AirPods Pro (2nd Gen)',
+      subtitle: 'Active Noise Cancelling Earbuds',
+      sellerName: 'SoundSphere',
+      tier: 'Elite' as const,
+      score: 93,
+      price: 189.99,
+      oldPrice: 209.99,
+      image: '/market/airpods.png',
+      gallery: ['/market/airpods.png'],
+      category: 'Accessories',
+      subcategory: 'Audio',
+      inStock: 45,
+      description: [
+        'AirPods Pro (2nd generation) deliver up to 2x more Active Noise Cancellation, Adaptive Transparency, and Personalized Spatial Audio.',
+        'A single charge gives you up to 6 hours of listening time, with the MagSafe case providing up to 30 hours total.',
+      ],
+      features: [
+        'Up to 2x more Active Noise Cancellation',
+        'Adaptive Transparency mode',
+        'Personalized Spatial Audio',
+        'Up to 6 hours listening time (30h with case)',
+        'MagSafe charging case with speaker',
+      ],
+      specs: [
+        { label: 'Chip', value: 'Apple H2' },
+        { label: 'Battery', value: '6h (30h with case)' },
+        { label: 'Charging', value: 'MagSafe / USB-C' },
+        { label: 'Water Resistance', value: 'IP54' },
+      ],
+      rating: 4.8,
+      reviews: 512,
+      badgeLabel: '10% OFF',
+      badgeTone: 'hot' as const,
+    },
+    {
+      slug: 'sony-a7-iii-mirrorless-camera',
+      name: 'Sony A7 III Mirrorless Camera',
+      subtitle: 'Full-Frame Mirrorless Camera',
+      sellerName: 'PhotoWorld',
+      tier: 'Elite' as const,
+      score: 97,
+      price: 1499.99,
+      image: '/market/camera.png',
+      gallery: ['/market/camera.png'],
+      category: 'Electronics',
+      subcategory: 'Cameras',
+      inStock: 6,
+      description: [
+        'The Sony A7 III is a full-frame mirrorless powerhouse with a 24.2MP back-illuminated sensor and 693-point phase-detection autofocus.',
+        'Capture stunning 4K HDR video and shoot up to 10fps with continuous AF/AE tracking.',
+      ],
+      features: [
+        '24.2MP full-frame Exmor R sensor',
+        '693-point phase-detection AF',
+        '4K HDR video recording',
+        'Up to 10fps continuous shooting',
+        '5-axis in-body image stabilization',
+      ],
+      specs: [
+        { label: 'Sensor', value: '24.2MP Full-Frame' },
+        { label: 'ISO Range', value: '100-51200' },
+        { label: 'Video', value: '4K HDR' },
+        { label: 'Stabilization', value: '5-axis IBIS' },
+      ],
+      rating: 4.9,
+      reviews: 176,
+      badgeLabel: 'BEST SELLER',
+      badgeTone: 'best' as const,
+    },
+    {
+      slug: 'apple-watch-series-9',
+      name: 'Apple Watch Series 9',
+      subtitle: 'Smartwatch with Always-On Display',
+      sellerName: 'Elite Gear Store',
+      tier: 'Elite' as const,
+      score: 95,
+      price: 399.99,
+      image: '/products/smart-watch.png',
+      gallery: ['/products/smart-watch.png'],
+      category: 'Accessories',
+      subcategory: 'Wearables',
+      inStock: 28,
+      description: [
+        'Apple Watch Series 9 features the powerful S9 chip, a brighter Always-On Retina display, and the magical new double tap gesture.',
+        'Advanced health and fitness tracking keeps you connected and motivated all day.',
+      ],
+      features: [
+        'S9 SiP with 4-core Neural Engine',
+        'Brighter Always-On Retina display (2000 nits)',
+        'Double tap gesture',
+        'Advanced health sensors & ECG',
+        'Carbon neutral options available',
+      ],
+      specs: [
+        { label: 'Chip', value: 'S9 SiP' },
+        { label: 'Display', value: 'Always-On Retina' },
+        { label: 'Brightness', value: '2000 nits' },
+        { label: 'Water Resistance', value: '50m' },
+      ],
+      rating: 4.8,
+      reviews: 289,
+      badgeLabel: 'NEW',
+      badgeTone: 'new' as const,
+    },
+    {
+      slug: 'secretlab-titan-evo-2022',
+      name: 'Secretlab Titan Evo 2022',
+      subtitle: 'Premium Ergonomic Gaming Chair',
+      sellerName: 'Tech Haven',
+      tier: 'Ascent' as const,
+      score: 84,
+      price: 449.99,
+      oldPrice: 599.99,
+      image: '/market/chair.png',
+      gallery: ['/market/chair.png'],
+      category: 'Home & Living',
+      subcategory: 'Furniture',
+      inStock: 15,
+      description: [
+        'The Secretlab Titan Evo 2022 sets the benchmark for ergonomic gaming chairs with its integrated 4-way L-ADAPT lumbar support system.',
+        'Crafted with proprietary NEO Hybrid Leatherette for durability and comfort during marathon sessions.',
+      ],
+      features: [
+        'Integrated 4-way L-ADAPT lumbar support',
+        'NEO Hybrid Leatherette upholstery',
+        'Magnetic memory foam head pillow',
+        '4D armrests with full adjustability',
+        'Multi-tilt mechanism up to 165 degrees',
+      ],
+      specs: [
+        { label: 'Material', value: 'NEO Hybrid Leatherette' },
+        { label: 'Recline', value: 'Up to 165 degrees' },
+        { label: 'Max Weight', value: '130kg' },
+        { label: 'Warranty', value: '5 years' },
+      ],
+      rating: 4.7,
+      reviews: 203,
+      badgeLabel: '25% OFF',
+      badgeTone: 'hot' as const,
+    },
+  ]
+
+  const productIds: Record<string, number> = {}
+  for (const p of productData) {
+    const product = await prisma.product.upsert({
+      where: { slug: p.slug },
+      update: {},
+      create: {
+        slug: p.slug,
+        name: p.name,
+        subtitle: p.subtitle,
+        sellerId: sellers[p.sellerName],
+        tier: p.tier,
+        score: p.score,
+        price: p.price,
+        oldPrice: p.oldPrice ?? null,
+        image: p.image,
+        gallery: p.gallery,
+        category: p.category,
+        subcategory: p.subcategory,
+        inStock: p.inStock,
+        description: p.description,
+        features: p.features,
+        specs: p.specs,
+        rating: p.rating,
+        reviews: p.reviews,
+        badgeLabel: p.badgeLabel ?? null,
+        badgeTone: p.badgeTone ?? null,
+      },
+    })
+    productIds[p.slug] = product.id
+    console.log(`  Product: ${p.name}`)
+  }
+
+  // --- Orders (Buyer view) ---
+  const orderData = [
+    {
+      id: '#NC-2025-05-24-8921',
+      buyerId: buyer.id,
+      sellerId: sellers['Aim Labs Store'],
+      productSlug: 'logitech-g-pro-x-superlight-2',
+      productName: 'Logitech G Pro X Superlight 2',
+      productSubtitle: 'Wireless Gaming Mouse',
+      image: '/store/product-mouse.png',
+      status: 'Paid' as const,
+      amount: 155.73,
+      items: 1,
+      orderedAt: new Date('2025-05-24T10:42:00'),
+      fulfillmentLabel: 'Estimated delivery',
+      fulfillmentValue: 'May 28 – Jun 1, 2025',
+      metaLabel: 'Payment Confirmed',
+      paymentChip: 'solana',
+    },
+    {
+      id: '#NC-2025-05-18-7754',
+      buyerId: buyer.id,
+      sellerId: sellers['SoundSphere'],
+      productSlug: 'apple-airpods-pro-2nd-gen',
+      productName: 'Apple AirPods Pro 2nd Gen',
+      productSubtitle: 'Active Noise Cancelling Earbuds',
+      image: '/market/airpods.png',
+      status: 'Shipped' as const,
+      amount: 189.99,
+      items: 1,
+      orderedAt: new Date('2025-05-18T15:15:00'),
+      fulfillmentLabel: 'Estimated delivery',
+      fulfillmentValue: 'May 22 – May 26, 2025',
+      metaLabel: 'Tracking ID',
+      metaValue: '1Z999AA10123456784',
+    },
+    {
+      id: '#NC-2025-05-10-5532',
+      buyerId: buyer.id,
+      sellerId: sellers['NextGen Store'],
+      productSlug: 'keychron-k8-pro-mechanical-keyboard',
+      productName: 'Keychron K8 Pro Mechanical Keyboard',
+      productSubtitle: 'Wireless Mechanical Keyboard',
+      image: '/market/keyboard.png',
+      status: 'Delivered' as const,
+      amount: 89.99,
+      items: 1,
+      orderedAt: new Date('2025-05-10T11:09:00'),
+      fulfillmentLabel: 'Delivered on',
+      fulfillmentValue: 'May 14, 2025',
+      metaLabel: 'Delivered on',
+      metaValue: 'May 24, 2025',
+    },
+    {
+      id: '#NC-2025-05-02-2210',
+      buyerId: buyer.id,
+      sellerId: sellers['NextGen Store'],
+      productSlug: 'lg-ultragear-27-144hz-gaming-monitor',
+      productName: 'LG UltraGear 27" 144Hz Gaming Monitor',
+      productSubtitle: 'QHD Gaming Monitor',
+      image: '/market/monitor.png',
+      status: 'Completed' as const,
+      amount: 229.99,
+      items: 1,
+      orderedAt: new Date('2025-05-02T09:20:00'),
+      fulfillmentLabel: 'Completed on',
+      fulfillmentValue: 'May 7, 2025',
+      metaLabel: 'Awaiting payment',
+    },
+    {
+      id: '#NC-2025-04-28-1099',
+      buyerId: buyer.id,
+      sellerId: sellers['Tech Haven'],
+      productSlug: 'secretlab-titan-evo-2022',
+      productName: 'Secretlab Titan Evo 2022',
+      productSubtitle: 'Premium Ergonomic Gaming Chair',
+      image: '/market/chair.png',
+      status: 'Cancelled' as const,
+      amount: 449.99,
+      items: 1,
+      orderedAt: new Date('2025-04-28T14:45:00'),
+      fulfillmentLabel: 'Cancelled on',
+      fulfillmentValue: 'Apr 29, 2025',
+      metaLabel: 'Cancelled on',
+      metaValue: 'May 21, 2025',
+    },
+  ]
+
+  for (const o of orderData) {
+    await prisma.order.upsert({
+      where: { id: o.id },
+      update: {},
+      create: {
+        id: o.id,
+        buyerId: o.buyerId,
+        sellerId: o.sellerId,
+        productId: productIds[o.productSlug] ?? null,
+        productSlug: o.productSlug,
+        productName: o.productName,
+        productSubtitle: o.productSubtitle,
+        image: o.image,
+        status: o.status,
+        amount: o.amount,
+        items: o.items,
+        orderedAt: o.orderedAt,
+        fulfillmentLabel: o.fulfillmentLabel,
+        fulfillmentValue: o.fulfillmentValue,
+        metaLabel: o.metaLabel,
+        metaValue: o.metaValue ?? null,
+        paymentChip: (o as any).paymentChip ?? null,
+      },
+    })
+    console.log(`  Order: ${o.id}`)
+  }
+
+  console.log('\nSeeding complete!')
+}
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(() => prisma.$disconnect())
