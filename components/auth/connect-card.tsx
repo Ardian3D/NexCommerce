@@ -18,20 +18,29 @@ export function ConnectCard() {
   const [errorMsg, setErrorMsg] = useState('')
   const hasChecked = useRef(false)
 
-  // Panggil connect() setelah wallet ter-select — ref agar tidak loop
+  // Stable refs agar tidak trigger ulang effect
   const connectRef = useRef(connect)
   connectRef.current = connect
+  const connectAttemptedFor = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!wallet) return
+    // Jangan connect jika: tidak ada wallet, sudah connected, sedang connecting,
+    // atau sudah pernah dicoba untuk wallet yang sama
+    if (!wallet || connected || connecting) return
+    const name = wallet.adapter.name
+    if (connectAttemptedFor.current === name) return
+    connectAttemptedFor.current = name
+
     setStatus('connecting')
     setErrorMsg('')
+
     connectRef.current().catch(() => {
       // User menolak / menutup popup Phantom
+      connectAttemptedFor.current = null
       setStatus('idle')
       setErrorMsg('Connection rejected. Please try again.')
     })
-  }, [wallet])
+  }, [wallet, connected, connecting])
 
   // Setelah Phantom benar-benar connected → cek DB
   useEffect(() => {
@@ -68,6 +77,7 @@ export function ConnectCard() {
   useEffect(() => {
     if (!connected) {
       hasChecked.current = false
+      connectAttemptedFor.current = null
       if (status !== 'idle' && status !== 'error') setStatus('idle')
     }
   }, [connected, status])
@@ -80,9 +90,15 @@ export function ConnectCard() {
       window.open('https://phantom.app/', '_blank')
       return
     }
+    // Jika Phantom belum terinstall, arahkan ke website
+    if (phantom.adapter.readyState === 'NotDetected') {
+      window.open('https://phantom.app/', '_blank')
+      return
+    }
     setErrorMsg('')
     setStatus('idle')
     hasChecked.current = false
+    connectAttemptedFor.current = null
     select(phantom.adapter.name)
   }
 

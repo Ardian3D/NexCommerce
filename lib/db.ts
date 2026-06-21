@@ -1,31 +1,33 @@
 import { PrismaClient } from '@prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
-import { Pool, neonConfig } from '@neondatabase/serverless'
-
-// Node.js environment (Vercel serverless) butuh WebSocket constructor
-if (typeof WebSocket === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  neonConfig.webSocketConstructor = require('ws')
-}
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 function createClient(): PrismaClient {
-  const url = process.env.DATABASE_URL ?? ''
-
-  // Neon → pakai HTTP/WebSocket adapter (tidak hang di serverless)
-  if (url.includes('neon.tech')) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pool = new Pool({ connectionString: url }) as any
-    const adapter = new PrismaNeon(pool)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new PrismaClient({ adapter } as any)
+  // Neon PgBouncer pooler (DATABASE_URL) tidak kompatibel dgn Prisma TCP.
+  // Pakai DIRECT_URL untuk koneksi langsung tanpa pooler.
+  // https://neon.tech/docs/connect/connectivity-issues#prisma
+  const directUrl = process.env.DIRECT_URL
+  if (directUrl) {
+    console.log('[DB] Using DIRECT_URL for Prisma (bypass PgBouncer)')
+    process.env.DATABASE_URL = directUrl
+  } else {
+    console.log('[DB] DIRECT_URL not set, using DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'NOT SET')
   }
 
-  // Local PostgreSQL → pakai TCP biasa
   return new PrismaClient()
 }
 
-export const prisma = globalForPrisma.prisma ?? createClient()
+function getPrisma(): PrismaClient {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma
+  globalForPrisma.prisma = createClient()
+  return globalForPrisma.prisma
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Lazy init — client hanya dibuat saat query pertama
+export const prisma = new Proxy({} as unknown as PrismaClient, {
+  get(_, prop: string | symbol) {
+    const client = getPrisma()
+    const value = Reflect.get(client as object, prop, client)
+    return typeof value === 'function' ? value.bind(client) : value
+  },
+})
