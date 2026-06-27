@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Sparkle } from './sparkle'
 
-const links = ['Products', 'Categories', 'About', 'Contact']
+const links = ['Products', 'Card', 'How It Works', 'FAQ']
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
