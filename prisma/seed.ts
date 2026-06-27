@@ -485,11 +485,11 @@ async function main() {
         fulfillmentValue: o.fulfillmentValue,
         metaLabel: o.metaLabel,
         metaValue: o.metaValue ?? null,
-        paymentChip: (o as any).paymentChip ?? null,
+        paymentChip: o.paymentChip ?? null,
       },
     })
+
     console.log(`  Order: ${o.id}`)
-  }
 
   console.log('\nSeeding complete!')
 }

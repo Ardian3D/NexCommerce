@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET!)
+const secret = new TextEncoder().encode(process.env.JWT_SECRET || '')
 
 export type JWTPayload = {
   sub: string | null   // user UUID (null jika belum register)
