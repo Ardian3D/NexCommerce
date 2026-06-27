@@ -1,8 +1,25 @@
 'use client'
 
 import { ShieldCheck, Award, ShoppingBag, Heart, TrendingUp, Info } from 'lucide-react'
+import { nextTierLabel } from '@/lib/tier-utils'
 
-export function BuyerStatCards() {
+type Props = {
+  trustScore: number
+  tier: string
+  totalOrders: number
+  deliveredOrders: number
+  pendingOrders: number
+  wishlistCount: number
+}
+
+export function BuyerStatCards({
+  trustScore,
+  tier,
+  totalOrders,
+  deliveredOrders,
+  pendingOrders,
+  wishlistCount,
+}: Props) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {/* Trust Score */}
@@ -14,10 +31,11 @@ export function BuyerStatCards() {
           <span className="text-sm font-medium text-muted-foreground">Trust Score</span>
         </div>
         <p className="mt-4 text-3xl font-bold text-foreground">
-          60 <span className="text-base font-medium text-muted-foreground">/ 100</span>
+          {trustScore}{' '}
+          <span className="text-base font-medium text-muted-foreground">/ 100</span>
         </p>
         <p className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
-          <TrendingUp className="h-3.5 w-3.5" />5 this week
+          <TrendingUp className="h-3.5 w-3.5" /> Active member
         </p>
       </div>
 
@@ -29,9 +47,9 @@ export function BuyerStatCards() {
           </span>
           <span className="text-sm font-medium text-muted-foreground">Current Tier</span>
         </div>
-        <p className="mt-4 text-3xl font-bold text-foreground">Starter</p>
+        <p className="mt-4 text-3xl font-bold text-foreground">{tier}</p>
         <p className="mt-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-          Next: Ascent (80) <Info className="h-3.5 w-3.5" />
+          {nextTierLabel(tier)} <Info className="h-3.5 w-3.5" />
         </p>
       </div>
 
@@ -43,9 +61,9 @@ export function BuyerStatCards() {
           </span>
           <span className="text-sm font-medium text-muted-foreground">Total Orders</span>
         </div>
-        <p className="mt-4 text-3xl font-bold text-foreground">2</p>
+        <p className="mt-4 text-3xl font-bold text-foreground">{totalOrders}</p>
         <p className="mt-2 text-xs font-medium text-muted-foreground">
-          1 delivered • 1 pending
+          {deliveredOrders} delivered &bull; {pendingOrders} pending
         </p>
       </div>
 
@@ -57,7 +75,7 @@ export function BuyerStatCards() {
           </span>
           <span className="text-sm font-medium text-muted-foreground">Wishlist Items</span>
         </div>
-        <p className="mt-4 text-3xl font-bold text-foreground">3</p>
+        <p className="mt-4 text-3xl font-bold text-foreground">{wishlistCount}</p>
         <p className="mt-2 text-xs font-medium text-muted-foreground">Saved for later</p>
       </div>
     </div>

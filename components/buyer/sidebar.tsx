@@ -32,7 +32,7 @@ const nav: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/buyer/dashboard' },
   { label: 'Marketplace', icon: Store, href: '/marketplace' },
   { label: 'Orders', icon: ClipboardList, href: '/buyer/orders' },
-  { label: 'Wishlist', icon: Heart, href: '/buyer/wishlist', badge: '3' },
+  { label: 'Wishlist', icon: Heart, href: '/buyer/wishlist' },
   { label: 'Trusted Sellers', icon: ShieldCheck, href: '/buyer/sellers' },
   { label: 'AI Assistant', icon: Sparkles, href: '/buyer/ai', isNew: true },
   { label: 'Messages', icon: MessageSquare, href: '/buyer/messages' },
@@ -41,14 +41,26 @@ const nav: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/buyer/settings' },
 ]
 
+type Props = {
+  open?: boolean
+  onClose?: () => void
+  displayName?: string
+  tier?: string
+  walletAddress?: string
+}
+
 export function BuyerSidebar({
   open = false,
   onClose,
-}: {
-  open?: boolean
-  onClose?: () => void
-}) {
+  displayName = '',
+  tier = 'Starter',
+  walletAddress = '',
+}: Props) {
   const pathname = usePathname()
+  const shortAddress = walletAddress
+    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+    : '—'
+
   return (
     <>
       {/* Mobile overlay */}
@@ -67,19 +79,14 @@ export function BuyerSidebar({
       >
         {/* Brand */}
         <div className="flex items-center gap-2 px-6 py-5">
-            <Image
-              src="/logo-sidebar.png"
-              alt="Logo"
-              width={190}
-              height={190}
-            />
-            <button
-              onClick={onClose}
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
-              aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-            </button>
+          <Image src="/logo-sidebar.png" alt="Logo" width={190} height={190} />
+          <button
+            onClick={onClose}
+            className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Buyer profile */}
@@ -93,7 +100,7 @@ export function BuyerSidebar({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-sm font-semibold text-white">
-                  Aim Labs
+                  {displayName || 'Buyer'}
                 </span>
                 <BadgeCheck className="h-4 w-4 text-blue-400" />
               </div>
@@ -101,7 +108,7 @@ export function BuyerSidebar({
             </div>
           </div>
           <span className="mt-2 ml-14 inline-block rounded-md bg-violet-500/20 px-2 py-0.5 text-[11px] font-semibold text-violet-300">
-            Starter
+            {tier}
           </span>
         </div>
 
@@ -163,11 +170,11 @@ export function BuyerSidebar({
         <div className="border-t border-white/10 px-4 py-3">
           <button className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg">
-              <Image src="/phantom-navbar-logo.png" alt="Phantom avatar" width={35} height={35} />
+              <Image src="/phantom-navbar-logo.png" alt="Phantom" width={35} height={35} />
             </span>
             <span className="min-w-0 flex-1 text-left">
               <span className="block truncate text-sm font-semibold text-white">
-                8XH...K9P
+                {shortAddress}
               </span>
               <span className="flex items-center gap-1 text-xs text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />

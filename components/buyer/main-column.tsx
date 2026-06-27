@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Sparkles,
   Send,
@@ -10,7 +11,9 @@ import {
   Heart,
   BadgeCheck,
   ShieldCheck,
+  Package,
 } from 'lucide-react'
+import type { RecommendedProduct } from '@/lib/actions/buyer-dashboard'
 
 const suggestions = [
   { icon: Gamepad2, label: 'Gaming setup under $1000' },
@@ -18,49 +21,11 @@ const suggestions = [
   { icon: Laptop, label: 'Laptop for content creators' },
 ]
 
-const products = [
-  {
-    name: 'Logitech G Pro X Superlight 2',
-    price: '$149.99',
-    image: '/store/product-mouse.png',
-    seller: 'Elite Gear Store',
-    tier: 'Elite',
-    score: 92,
-  },
-  {
-    name: 'Keychron K8 Pro Mechanical Keyboard',
-    price: '$89.99',
-    image: '/market/keyboard.png',
-    seller: 'Tech Haven',
-    tier: 'Ascent',
-    score: 85,
-  },
-  {
-    name: 'Sony WH-1000XM5 Wireless Headphones',
-    price: '$299.99',
-    image: '/market/headphones.png',
-    seller: 'SoundSphere',
-    tier: 'Elite',
-    score: 93,
-  },
-  {
-    name: 'LG UltraGear 27" 144Hz Monitor',
-    price: '$229.99',
-    image: '/market/monitor.png',
-    seller: 'NextGen Store',
-    tier: 'Ascent',
-    score: 88,
-  },
-]
+type Props = {
+  products?: RecommendedProduct[]
+}
 
-const sellers = [
-  { name: 'Elite Gear Store', tier: 'Elite', score: 92, products: '1,234 Products' },
-  { name: 'Tech Haven', tier: 'Ascent', score: 85, products: '856 Products' },
-  { name: 'SoundSphere', tier: 'Elite', score: 93, products: '654 Products' },
-  { name: 'NextGen Store', tier: 'Ascent', score: 88, products: '1,102 Products' },
-]
-
-export function BuyerMainColumn() {
+export function BuyerMainColumn({ products = [] }: Props) {
   return (
     <div className="space-y-6">
       {/* AI Shopping Assistant */}
@@ -107,88 +72,67 @@ export function BuyerMainColumn() {
       <div>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">Recommended For You</h2>
-          <button className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+          <Link href="/marketplace" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
             View all
-          </button>
+          </Link>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {products.map((p) => (
-            <div
-              key={p.name}
-              className="group overflow-hidden rounded-2xl bg-card ring-1 ring-border transition-shadow hover:shadow-lg"
-            >
-              <div className="relative aspect-square bg-[#eef0f3]">
-                <Image src={p.image} alt={p.name} fill className="object-cover" />
-                <button className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm transition-colors hover:text-pink-600">
-                  <Heart className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="p-4">
-                <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-foreground">
-                  {p.name}
-                </h3>
-                <p className="mt-1 text-base font-bold text-foreground">{p.price}</p>
-                <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="truncate">{p.seller}</span>
-                  <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-                </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                    {p.tier}
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    {p.score}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Top Verified Sellers */}
-      <div>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground">Top Verified Sellers</h2>
-          <button className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-            View all
-          </button>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {sellers.map((s) => (
-            <div
-              key={s.name}
-              className="rounded-2xl bg-card p-4 ring-1 ring-border transition-shadow hover:shadow-md"
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-xs font-bold text-white">
-                  {s.name.slice(0, 2).toUpperCase()}
-                </span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="truncate text-sm font-semibold text-foreground">
-                      {s.name}
-                    </span>
+        {products.length === 0 ? (
+          <div className="mt-4 flex flex-col items-center justify-center rounded-2xl bg-card py-12 text-center ring-1 ring-border">
+            <Package className="h-10 w-10 text-muted-foreground" />
+            <p className="mt-3 font-semibold text-foreground">No products yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Check back soon for new listings.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {products.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/product/${p.slug}`}
+                className="group overflow-hidden rounded-2xl bg-card ring-1 ring-border transition-shadow hover:shadow-lg"
+              >
+                <div className="relative aspect-square bg-[#eef0f3]">
+                  {p.image ? (
+                    <Image src={p.image} alt={p.name} fill className="object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Package className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                  )}
+                  <button
+                    onClick={(e) => e.preventDefault()}
+                    className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm transition-colors hover:text-pink-600"
+                  >
+                    <Heart className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="p-4">
+                  <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-foreground">
+                    {p.name}
+                  </h3>
+                  <p className="mt-1 text-base font-bold text-foreground">{p.price}</p>
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="truncate">{p.sellerName}</span>
                     <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" />
                   </div>
-                  <span className="flex items-center gap-1.5 text-xs">
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                      {s.tier}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                      {p.tier}
                     </span>
-                    <span className="flex items-center gap-0.5 font-semibold text-emerald-600">
-                      <ShieldCheck className="h-3 w-3" />
-                      {s.score}
-                    </span>
-                  </span>
+                    {p.score != null && (
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        {p.score}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <p className="mt-3 text-xs font-medium text-muted-foreground">
-                {s.products}
-              </p>
-            </div>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

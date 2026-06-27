@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -200,4 +199,17 @@ model Wishlist {
   @@unique([buyerId, productId])
   @@index([buyerId])
   @@map("wishlist")
+}
+
+model AuthNonce {
+  id        String   @id @default(uuid())
+  wallet    String
+  nonce     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([wallet])
+  @@index([expiresAt])
+  @@map("auth_nonces")
 }

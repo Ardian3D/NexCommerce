@@ -82,7 +82,7 @@ function VerifyContent() {
   const params = useSearchParams()
   const role = params.get('role') === 'seller' ? 'seller' : 'buyer'
   const { publicKey } = useWallet()
-  const walletAddress = publicKey ? publicKey.toBase58() : '—'
+  const walletAddress = publicKey?.toBase58() ?? '—'
   const accent = role === 'seller' ? 'var(--seller)' : 'var(--primary)'
 
   const [step, setStep] = useState(1)
@@ -99,9 +99,8 @@ function VerifyContent() {
   }
 
   async function handleSubmit() {
-    if (!publicKey) return
     setSubmitting(true)
-    await submitVerification(publicKey.toBase58(), values, role)
+    await submitVerification(values, role)
     router.push('/pending-review')
   }
 

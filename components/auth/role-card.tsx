@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, type Variants } from 'framer-motion'
 import { ShoppingCart, Store, BadgeCheck, ArrowRight, Check, Loader2 } from 'lucide-react'
-import { useWallet } from '@solana/wallet-adapter-react'
 import { createUserWithRole } from '@/lib/actions/auth'
 
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -33,14 +32,16 @@ export function RoleCard({ role, index }: { role: Role; index: number }) {
   const Icon = role.icon
   const isSeller = role.accent === 'seller'
   const router = useRouter()
-  const { publicKey } = useWallet()
   const [saving, setSaving] = useState(false)
 
   async function handleSelectRole() {
-    if (!publicKey) return
     setSaving(true)
-    await createUserWithRole(publicKey.toBase58(), role.id)
-    router.push(role.href)
+    try {
+      await createUserWithRole(role.id)
+      router.push(role.href)
+    } catch {
+      setSaving(false)
+    }
   }
 
   // Scoped accent classes so each card themes itself.

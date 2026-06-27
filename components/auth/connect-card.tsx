@@ -6,14 +6,13 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Loader2, AlertCircle } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { getUserByWallet } from '@/lib/actions/auth'
 import { Sparkle } from '@/components/sparkle'
 
 type Status = 'idle' | 'connecting' | 'checking' | 'redirecting' | 'error'
 
 export function ConnectCard() {
   const router = useRouter()
-  const { wallets, wallet, select, connect, connecting, connected, publicKey } = useWallet()
+  const { wallets, wallet, select, connect, connecting, connected, publicKey, signMessage } = useWallet()
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const hasChecked = useRef(false)
@@ -42,14 +41,39 @@ export function ConnectCard() {
     })
   }, [wallet, connected, connecting])
 
-  // Setelah Phantom benar-benar connected → cek DB
+  // Setelah Phantom connected → SIWE: minta nonce → sign → verify → JWT
   useEffect(() => {
-    if (!connected || !publicKey || hasChecked.current) return
+    if (!connected || !publicKey || !signMessage || hasChecked.current) return
     hasChecked.current = true
     setStatus('checking')
 
-    getUserByWallet(publicKey.toBase58())
-      .then((user) => {
+    ;(async () => {
+      try {
+        // 1. Minta nonce dari server
+        const nonceRes = await fetch(`/api/auth/nonce?wallet=${publicKey.toBase58()}`)
+        if (!nonceRes.ok) throw new Error('Failed to get nonce')
+        const { nonce } = await nonceRes.json()
+
+        // 2. Minta user sign pesan (Phantom popup muncul)
+        const message = `NexCommerce Authentication\nNonce: ${nonce}`
+        const messageBytes = new TextEncoder().encode(message)
+        const signature = await signMessage(messageBytes)
+        const signatureBase64 = Buffer.from(signature).toString('base64')
+
+        // 3. Kirim ke server untuk verifikasi → dapat JWT cookie
+        const verifyRes = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet: publicKey.toBase58(),
+            signature: signatureBase64,
+            nonce,
+          }),
+        })
+
+        if (!verifyRes.ok) throw new Error('Signature verification failed')
+        const { user } = await verifyRes.json()
+
         setStatus('redirecting')
 
         if (!user) return router.push('/selection-role')
@@ -64,14 +88,13 @@ export function ConnectCard() {
           return router.push(`/identity-activated?role=${role}`)
 
         router.push(role === 'seller' ? '/seller/dashboard' : '/buyer/dashboard')
-      })
-      .catch(() => {
-        // DB error — jangan redirect, tampilkan pesan error
+      } catch {
         hasChecked.current = false
         setStatus('error')
-        setErrorMsg('Unable to reach server. Please try again.')
-      })
-  }, [connected, publicKey, router])
+        setErrorMsg('Authentication failed. Please try again.')
+      }
+    })()
+  }, [connected, publicKey, signMessage, router])
 
   // Reset guard jika wallet disconnect
   useEffect(() => {

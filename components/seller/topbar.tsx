@@ -1,8 +1,20 @@
 'use client'
 
-import { Search, Bell, MessageSquare, ExternalLink, Menu } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Search, Bell, MessageSquare, ExternalLink, Menu, ChevronDown } from 'lucide-react'
 
-export function SellerTopbar({ onMenuClick }: { onMenuClick?: () => void }) {
+type Props = {
+  onMenuClick?: () => void
+  walletAddress?: string
+  pendingOrdersCount?: number
+}
+
+export function SellerTopbar({ onMenuClick, walletAddress, pendingOrdersCount = 0 }: Props) {
+  const shortAddress = walletAddress
+    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+    : '—'
+
   return (
     <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-card px-4 py-3 sm:gap-4 sm:px-6">
       <button
@@ -27,19 +39,44 @@ export function SellerTopbar({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+        <Link
+          href="/seller/orders"
+          className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-            3
-          </span>
-        </button>
-        <button className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          {pendingOrdersCount > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+              {pendingOrdersCount > 9 ? '9+' : pendingOrdersCount}
+            </span>
+          )}
+        </Link>
+        <Link
+          href="/seller/messages"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
           <MessageSquare className="h-5 w-5" />
-        </button>
-        <button className="flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:px-4 sm:py-2">
-          <span className="hidden sm:inline">View Store</span>
+        </Link>
+        <Link
+          href="/seller/store"
+          className="hidden h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted sm:flex sm:px-4"
+        >
+          <span>View Store</span>
           <ExternalLink className="h-4 w-4" />
-        </button>
+        </Link>
+
+        <Link
+          href="/seller/settings"
+          className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background pl-1.5 pr-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-md">
+            <Image src="/phantom-navbar-logo.png" alt="Phantom" width={35} height={35} />
+          </span>
+          <span className="hidden items-center gap-1 sm:flex">
+            {shortAddress}
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </Link>
       </div>
     </header>
   )

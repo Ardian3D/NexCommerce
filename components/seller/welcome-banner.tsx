@@ -1,8 +1,18 @@
 'use client'
 
+import Link from 'next/link'
 import { ShieldCheck, Award, ArrowRight } from 'lucide-react'
+import { nextTierLabel } from '@/lib/tier-utils'
 
-export function WelcomeBanner() {
+type Props = {
+  storeName: string
+  tier: string
+  trustScore: number
+}
+
+export function WelcomeBanner({ storeName, tier, trustScore }: Props) {
+  const scoreWidth = `${Math.min(trustScore, 100)}%`
+
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a0e1a] via-[#111a35] to-[#1a1147] p-6 text-white sm:p-8">
       {/* decorative wave */}
@@ -12,26 +22,14 @@ export function WelcomeBanner() {
         fill="none"
         aria-hidden="true"
       >
-        <path
-          d="M0 120 Q100 60 200 110 T400 80"
-          stroke="#3b82f6"
-          strokeWidth="1"
-          fill="none"
-          opacity="0.4"
-        />
-        <path
-          d="M0 150 Q120 90 240 140 T400 110"
-          stroke="#8b5cf6"
-          strokeWidth="1"
-          fill="none"
-          opacity="0.3"
-        />
+        <path d="M0 120 Q100 60 200 110 T400 80" stroke="#3b82f6" strokeWidth="1" fill="none" opacity="0.4" />
+        <path d="M0 150 Q120 90 240 140 T400 110" stroke="#8b5cf6" strokeWidth="1" fill="none" opacity="0.3" />
       </svg>
 
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Welcome back, Aim Labs!{' '}
+            Welcome back, {storeName}!{' '}
             <span className="inline-block">👋</span>
           </h1>
           <p className="mt-2 text-slate-300">
@@ -48,10 +46,13 @@ export function WelcomeBanner() {
               </span>
               <span className="text-sm font-bold tracking-wide">NEX IDENTITY</span>
             </div>
-            <button className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300">
+            <Link
+              href="/seller/identity"
+              className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300"
+            >
               View Identity Card
               <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+            </Link>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-4">
@@ -59,16 +60,20 @@ export function WelcomeBanner() {
               <Award className="mt-0.5 h-5 w-5 text-violet-400" />
               <div>
                 <p className="text-xs text-slate-400">Tier</p>
-                <p className="text-sm font-bold">Starter</p>
+                <p className="text-sm font-bold">{tier}</p>
+                <p className="mt-0.5 text-[10px] text-slate-400">{nextTierLabel(tier)}</p>
               </div>
             </div>
             <div className="flex items-start gap-2.5">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-blue-400" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-slate-400">Trust Score</p>
-                <p className="text-sm font-bold">60 / 100</p>
+                <p className="text-sm font-bold">{trustScore} / 100</p>
                 <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full w-[60%] rounded-full bg-gradient-to-r from-blue-500 to-violet-500" />
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all"
+                    style={{ width: scoreWidth }}
+                  />
                 </div>
               </div>
             </div>

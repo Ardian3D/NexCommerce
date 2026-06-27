@@ -10,26 +10,19 @@ import {
   YAxis,
 } from 'recharts'
 import { ChevronDown } from 'lucide-react'
+import type { ChartPoint } from '@/lib/actions/seller-dashboard'
 
-const data = [
-  { day: '7 May', revenue: 5, orders: 1 },
-  { day: '8 May', revenue: 12, orders: 2 },
-  { day: '9 May', revenue: 18, orders: 2 },
-  { day: '10 May', revenue: 45, orders: 4 },
-  { day: '11 May', revenue: 78, orders: 6 },
-  { day: '12 May', revenue: 110, orders: 9 },
-  { day: '13 May', revenue: 72, orders: 4 },
-]
+type Props = {
+  data?: ChartPoint[]
+}
 
-export function OverviewChart() {
+export function OverviewChart({ data = [] }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-foreground">
           Overview{' '}
-          <span className="text-sm font-normal text-muted-foreground">
-            (Last 7 days)
-          </span>
+          <span className="text-sm font-normal text-muted-foreground">(Last 7 days)</span>
         </h3>
         <button className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground">
           Last 7 days
@@ -39,7 +32,7 @@ export function OverviewChart() {
 
       <div className="mt-3 flex items-center gap-4 text-xs font-medium">
         <span className="flex items-center gap-1.5 text-foreground">
-          <span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Revenue
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Revenue ($)
         </span>
         <span className="flex items-center gap-1.5 text-foreground">
           <span className="h-2.5 w-2.5 rounded-full bg-violet-500" /> Orders
@@ -75,11 +68,10 @@ export function OverviewChart() {
             />
             <YAxis yAxisId="right" orientation="right" hide />
             <Tooltip
-              contentStyle={{
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                fontSize: 12,
-              }}
+              contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }}
+              formatter={(value, name) =>
+                name === 'revenue' ? [`$${value}`, 'Revenue'] : [value, 'Orders']
+              }
             />
             <Area
               yAxisId="left"

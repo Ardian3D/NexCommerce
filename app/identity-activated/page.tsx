@@ -53,10 +53,9 @@ function ActivatedContent() {
   const [userData, setUserData] = useState<{ fullName: string | null; country: string | null; photoUrl: string | null } | null>(null)
 
   useEffect(() => {
+    markIdentityActivated()
     if (!publicKey) return
-    const address = publicKey.toBase58()
-    markIdentityActivated(address)
-    getUserByWallet(address).then((u) => {
+    getUserByWallet(publicKey.toBase58()).then((u) => {
       if (u) setUserData({ fullName: u.fullName, country: u.country, photoUrl: u.photoUrl })
     })
   }, [publicKey])

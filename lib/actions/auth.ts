@@ -1,6 +1,9 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/db'
+import { signJWT } from '@/lib/auth/jwt'
+import { getServerSession, SESSION_COOKIE } from '@/lib/auth/session'
 
 export async function getUserByWallet(walletAddress: string) {
   return prisma.user.findUnique({
@@ -20,20 +23,39 @@ export async function getUserByWallet(walletAddress: string) {
   })
 }
 
-export async function createUserWithRole(
-  walletAddress: string,
-  role: 'buyer' | 'seller'
-) {
-  return prisma.user.upsert({
-    where: { walletAddress },
+// Wallet dibaca dari JWT session — client tidak bisa inject wallet address palsu
+export async function createUserWithRole(role: 'buyer' | 'seller') {
+  const session = await getServerSession()
+  if (!session?.wallet) throw new Error('Unauthorized')
+
+  const user = await prisma.user.upsert({
+    where: { walletAddress: session.wallet },
     update: {},
-    create: { walletAddress, role },
+    create: { walletAddress: session.wallet, role },
     select: { id: true, role: true, verificationStatus: true },
   })
+
+  // Issue JWT baru dengan role yang sudah ada
+  const token = await signJWT({
+    sub: user.id,
+    wallet: session.wallet,
+    role: user.role,
+    verificationStatus: user.verificationStatus,
+  })
+
+  const cookieStore = await cookies()
+  cookieStore.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 900,
+    path: '/',
+  })
+
+  return user
 }
 
 export async function submitVerification(
-  walletAddress: string,
   form: {
     fullName: string
     email: string
@@ -60,8 +82,11 @@ export async function submitVerification(
   },
   role: 'buyer' | 'seller'
 ) {
+  const session = await getServerSession()
+  if (!session?.wallet) throw new Error('Unauthorized')
+
   return prisma.user.update({
-    where: { walletAddress },
+    where: { walletAddress: session.wallet },
     data: {
       fullName: form.fullName,
       email: form.email || null,
@@ -121,15 +146,21 @@ export async function submitVerification(
   })
 }
 
-export async function markIdentityActivated(walletAddress: string) {
+export async function markIdentityActivated() {
+  const session = await getServerSession()
+  if (!session?.wallet) throw new Error('Unauthorized')
+
   return prisma.user.update({
-    where: { walletAddress },
+    where: { walletAddress: session.wallet },
     data: { identityActivatedAt: new Date() },
   })
 }
 
-// Dipanggil dari admin dashboard
+// Hanya admin yang bisa approve — dicek via role di JWT
 export async function approveUser(userId: string) {
+  const session = await getServerSession()
+  if (session?.role !== 'admin') throw new Error('Forbidden')
+
   return prisma.user.update({
     where: { id: userId },
     data: {
