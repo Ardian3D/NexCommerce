@@ -17,16 +17,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-
-const lineData = [
-  { day: 'May 18', users: 900, orders: 480, revenue: 180 },
-  { day: 'May 19', users: 1050, orders: 560, revenue: 230 },
-  { day: 'May 20', users: 1000, orders: 640, revenue: 320 },
-  { day: 'May 21', users: 1380, orders: 1020, revenue: 400 },
-  { day: 'May 22', users: 1450, orders: 1080, revenue: 470 },
-  { day: 'May 23', users: 1420, orders: 1180, revenue: 540 },
-  { day: 'May 24', users: 1850, orders: 1300, revenue: 640 },
-]
+import type { ChartPoint, PlatformOverview } from '@/lib/actions/admin'
 
 const lineConfig = {
   users: { label: 'Users', color: '#7c3aed' },
@@ -34,7 +25,11 @@ const lineConfig = {
   revenue: { label: 'Revenue (USDC)', color: '#f59e0b' },
 } satisfies ChartConfig
 
-export function AdminOverviewChart() {
+export function AdminOverviewChart({ data = [] }: { data?: ChartPoint[] }) {
+  const displayData = data.length > 0 ? data : [
+    { day: 'No data', users: 0, orders: 0, revenue: 0 },
+  ]
+
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
@@ -55,7 +50,7 @@ export function AdminOverviewChart() {
       </div>
 
       <ChartContainer config={lineConfig} className="mt-4 h-[260px] w-full">
-        <LineChart data={lineData} margin={{ top: 5, right: 12, left: -12, bottom: 0 }}>
+        <LineChart data={displayData} margin={{ top: 5, right: 12, left: -12, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="day"
@@ -91,66 +86,52 @@ export function AdminOverviewChart() {
   )
 }
 
-const donutData = [
-  { name: 'Completed', value: 2245, pct: '63.4%', color: '#22c55e' },
-  { name: 'Pending', value: 742, pct: '20.9%', color: '#f59e0b' },
-  { name: 'Shipped', value: 348, pct: '9.8%', color: '#3b82f6' },
-  { name: 'Cancelled', value: 207, pct: '5.9%', color: '#ef4444' },
-]
+export function AdminPlatformOverview({ overview }: { overview?: PlatformOverview }) {
+  const categories = overview?.categories?.length ? overview.categories : [
+    { name: 'No data', value: 0 },
+  ]
+  const CAT_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']
 
-const donutConfig = {
-  Completed: { label: 'Completed', color: '#22c55e' },
-  Pending: { label: 'Pending', color: '#f59e0b' },
-  Shipped: { label: 'Shipped', color: '#3b82f6' },
-  Cancelled: { label: 'Cancelled', color: '#ef4444' },
-} satisfies ChartConfig
+  const maxCat = Math.max(...categories.map(c => c.value), 1)
 
-export function AdminPlatformOverview() {
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-card p-5">
       <h3 className="text-lg font-bold text-foreground">Platform Overview</h3>
 
-      <div className="mt-2 flex flex-1 flex-col items-center justify-center gap-4">
-        <div className="relative h-40 w-40 shrink-0">
-          <ChartContainer config={donutConfig} className="h-40 w-40">
-            <PieChart>
-              <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
-              <Pie
-                data={donutData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={48}
-                outerRadius={72}
-                paddingAngle={2}
-                stroke="none"
-              >
-                {donutData.map((d) => (
-                  <Cell key={d.name} fill={d.color} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xs text-muted-foreground">Total Orders</span>
-            <span className="text-2xl font-bold text-foreground">3,542</span>
-          </div>
+      <div className="mt-4 space-y-4">
+        {/* Product Categories */}
+        <div>
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">Products by Category</p>
+          {categories.map((c, i) => (
+            <div key={c.name} className="mb-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-foreground">{c.name}</span>
+                <span className="font-semibold text-muted-foreground">{c.value}</span>
+              </div>
+              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${(c.value / maxCat) * 100}%`, backgroundColor: CAT_COLORS[i % CAT_COLORS.length] }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
 
-        <ul className="grid w-full grid-cols-2 gap-x-3 gap-y-3">
-          {donutData.map((d) => (
-            <li key={d.name} className="flex min-w-0 flex-col gap-0.5">
-              <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
-                <span className="truncate">{d.name}</span>
-              </span>
-              <span className="pl-4 text-xs text-muted-foreground">
-                {d.value.toLocaleString()} ({d.pct})
-              </span>
-            </li>
-          ))}
-        </ul>
+        {/* Roles */}
+        {overview?.roles?.length ? (
+          <div className="border-t border-border pt-4">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">Users by Role</p>
+            <div className="flex gap-4">
+              {overview.roles.map((r) => (
+                <div key={r.name} className="flex-1 rounded-xl bg-secondary/60 p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">{r.value}</p>
+                  <p className="text-xs capitalize text-muted-foreground">{r.name}s</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

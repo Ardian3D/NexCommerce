@@ -9,7 +9,7 @@ import {
   AdminSystemHealth,
 } from '@/components/admin/panels'
 import { AdminReportsSummary, AdminTopReportReasons } from '@/components/admin/reports'
-import { getAdminStats, getPendingVerifications, getRecentOrders } from '@/lib/actions/admin'
+import { getAdminStats, getPendingVerifications, getRecentOrders, getRecentActivity, getChartData, getPlatformOverview, getSystemHealth } from '@/lib/actions/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,10 +19,14 @@ export const metadata: Metadata = {
 }
 
 export default async function AdminDashboardPage() {
-  const [stats, pendingQueue, recentOrders] = await Promise.all([
+  const [stats, pendingQueue, recentOrders, activity, chartData, platformOverview, systemHealth] = await Promise.all([
     getAdminStats(),
     getPendingVerifications(),
     getRecentOrders(5),
+    getRecentActivity(5),
+    getChartData(7),
+    getPlatformOverview(),
+    getSystemHealth(),
   ])
 
   return (
@@ -37,20 +41,20 @@ export default async function AdminDashboardPage() {
             totalRevenue={stats.totalRevenue}
             avgTrustScore={stats.avgTrustScore}
           />
-          <AdminRecentActivity />
+          <AdminRecentActivity items={activity} />
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <AdminOverviewChart />
-          <AdminPlatformOverview />
+          <AdminOverviewChart data={chartData} />
+          <AdminPlatformOverview overview={platformOverview} />
         </div>
 
         {/* Queue + orders + health */}
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
           <AdminVerificationQueue queue={pendingQueue} />
           <AdminRecentOrders orders={recentOrders} />
-          <AdminSystemHealth />
+          <AdminSystemHealth health={systemHealth} />
         </div>
 
         {/* Reports */}

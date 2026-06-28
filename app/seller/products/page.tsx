@@ -86,7 +86,7 @@ export default async function SellerProductsPage() {
                 className="group overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-md"
               >
                 <div className="relative aspect-video overflow-hidden bg-muted">
-                  {p.image && !p.image.startsWith('blob:') ? (
+                  {p.image ? (
                     <Image
                       src={p.image}
                       alt={p.name}

@@ -40,6 +40,8 @@ export function CreateProductForm() {
   const [tags, setTags] = useState<string[]>([])
   const [features, setFeatures] = useState<string[]>([])
   const [images, setImages] = useState<string[]>([])
+  // Keep File references for base64 conversion on submit
+  const [imageFiles, setImageFiles] = useState<File[]>([])
 
   const [loading, setLoading] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -94,6 +96,16 @@ export function CreateProductForm() {
     const files = Array.from(e.target.files ?? [])
     const urls = files.map((f) => URL.createObjectURL(f))
     setImages((prev) => [...prev, ...urls].slice(0, 6))
+    setImageFiles((prev) => [...prev, ...files].slice(0, 6))
+  }
+
+  async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
   }
 
   async function handleSubmit(status: 'published' | 'draft') {
@@ -102,6 +114,16 @@ export function CreateProductForm() {
     setSubmitting(true)
 
     try {
+      // Convert first image to base64 if available
+      let imageData: string | undefined
+      if (imageFiles.length > 0) {
+        try {
+          imageData = await fileToBase64(imageFiles[0])
+        } catch {
+          // base64 conversion failed, send without image
+        }
+      }
+
       const result = await createProduct({
         name,
         category,
@@ -110,7 +132,7 @@ export function CreateProductForm() {
         description,
         features,
         tags,
-        image: images[0] ?? undefined,
+        image: imageData,
         status,
       })
 

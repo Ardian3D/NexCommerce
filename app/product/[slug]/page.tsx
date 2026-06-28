@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { WalletNavbar } from '@/components/wallet-navbar'
+import { Footer } from '@/components/footer'
 import { ProductDetail } from '@/components/product/product-detail'
 import { getProductBySlug, getProductSlugs } from '@/lib/products'
 
@@ -35,5 +37,11 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug)
   if (!product) notFound()
 
-  return <ProductDetail product={product} />
+  return (
+    <>
+      <WalletNavbar />
+      <ProductDetail product={product} />
+      <Footer />
+    </>
+  )
 }

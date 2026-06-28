@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import {
   UserPlus,
+  Users,
   Package,
   CheckCircle2,
   ShieldCheck,
@@ -16,42 +17,48 @@ import {
   Activity,
   Loader2,
 } from 'lucide-react'
-import { approveUser, rejectUser, type PendingUser, type AdminOrderRow } from '@/lib/actions/admin'
+import { approveUser, rejectUser, type PendingUser, type AdminOrderRow, type ActivityItem, type SystemHealth as SystemHealthType } from '@/lib/actions/admin'
 
 /* ---------------- Recent Activity ---------------- */
 
-const defaultActivity = [
-  { icon: UserPlus, tone: 'bg-violet-100 text-violet-600', title: 'New user registered', desc: '0x8a7f...3d2e', time: '2m ago' },
-  { icon: Package, tone: 'bg-blue-100 text-blue-600', title: 'Product added', desc: 'Logitech G Pro X Superlight 2', time: '5m ago' },
-  { icon: CheckCircle2, tone: 'bg-emerald-100 text-emerald-600', title: 'Order completed', desc: 'Order #NC-2025-05-24-8921', time: '12m ago' },
-  { icon: ShieldCheck, tone: 'bg-amber-100 text-amber-600', title: 'KYC verification submitted', desc: 'User: 0x7b8e...9f1a', time: '15m ago' },
-  { icon: Star, tone: 'bg-rose-100 text-rose-600', title: 'New review received', desc: 'Product: Apple AirPods Pro 2', time: '22m ago' },
-]
+const iconMap = {
+  user: { icon: UserPlus, tone: 'bg-violet-100 text-violet-600' },
+  package: { icon: Package, tone: 'bg-blue-100 text-blue-600' },
+  order: { icon: CheckCircle2, tone: 'bg-emerald-100 text-emerald-600' },
+  kyc: { icon: ShieldCheck, tone: 'bg-amber-100 text-amber-600' },
+} as const
 
-export function AdminRecentActivity() {
+export function AdminRecentActivity({ items = [] }: { items?: ActivityItem[] }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center justify-between pb-3">
         <h3 className="text-lg font-bold text-foreground">Recent Activity</h3>
         <button className="text-xs font-semibold text-primary hover:underline">View All</button>
       </div>
-      <ul className="space-y-3">
-        {defaultActivity.map((a, i) => (
-          <li key={i} className="flex items-start gap-2.5">
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.tone}`}>
-              <a.icon className="h-3.5 w-3.5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">{a.title}</p>
-              <p className="truncate text-xs text-muted-foreground">{a.desc}</p>
-            </div>
-            <div className="flex items-center gap-1 whitespace-nowrap">
-              <span className="text-xs text-muted-foreground">{a.time}</span>
-              <span className="h-1 w-1 rounded-full bg-emerald-500" />
-            </div>
-          </li>
-        ))}
-      </ul>
+      {items.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">No recent activity yet</p>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((a, i) => {
+            const { icon: Icon, tone } = iconMap[a.icon] || iconMap.order
+            return (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tone}`}>
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">{a.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">{a.desc}</p>
+                </div>
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                  <span className="text-xs text-muted-foreground">{a.time}</span>
+                  <span className="h-1 w-1 rounded-full bg-emerald-500" />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
@@ -238,15 +245,14 @@ export function AdminRecentOrders({ orders = [] }: { orders?: AdminOrderRow[] })
 
 /* ---------------- System Health ---------------- */
 
-const health = [
-  { label: 'Blockchain (Solana)', icon: Boxes },
-  { label: 'Database', icon: Database },
-  { label: 'API Services', icon: Server },
-  { label: 'Storage', icon: HardDrive },
-  { label: 'Real-time Indexer', icon: Activity },
-]
-
-export function AdminSystemHealth() {
+export function AdminSystemHealth({ health }: { health?: SystemHealthType }) {
+  const items = [
+    { label: 'Total Users', value: health ? health.totalUsers.toLocaleString() : '—', icon: Users },
+    { label: 'Total Products', value: health ? health.totalProducts.toLocaleString() : '—', icon: Package },
+    { label: 'Total Orders', value: health ? health.totalOrders.toLocaleString() : '—', icon: CheckCircle2 },
+    { label: 'Database', value: health?.dbStatus ?? 'Unknown', icon: Database },
+    { label: 'Cache', value: 'Connected', icon: Activity },
+  ]
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center justify-between pb-3">
@@ -254,14 +260,14 @@ export function AdminSystemHealth() {
         <button className="text-xs font-semibold text-primary hover:underline">View All</button>
       </div>
       <ul className="space-y-2.5">
-        {health.map((h) => (
+        {items.map((h) => (
           <li key={h.label} className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
               <h.icon className="h-3.5 w-3.5" />
             </span>
             <span className="text-sm font-medium text-foreground">{h.label}</span>
             <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-emerald-600">
-              Healthy
+              {h.value}
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             </span>
           </li>
