@@ -82,7 +82,7 @@ export async function getBuyerDashboardData(userId: string): Promise<BuyerDashbo
     prisma.product.findMany({
       take: 4,
       orderBy: { createdAt: 'desc' },
-      where: { inStock: { gt: 0 } },
+      where: { status: 'published', inStock: { gt: 0 } },
       select: {
         slug: true,
         name: true,
