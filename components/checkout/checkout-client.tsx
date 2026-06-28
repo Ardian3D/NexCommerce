@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import {
   Lock,
@@ -19,13 +19,13 @@ import {
   X,
   Check,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { tierStyles, type Product } from '@/lib/products'
 import { Stepper } from '@/components/checkout/stepper'
 import { TrustBar } from '@/components/shared/trust-bar'
 import { saveShippingAddress, getShippingAddress } from '@/lib/actions/address'
-import { useEffect } from 'react'
 
 type AddressData = {
   fullName: string
@@ -42,6 +42,7 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
   const [editingAddress, setEditingAddress] = useState(false)
   const [savingAddress, setSavingAddress] = useState(false)
   const [addressLoaded, setAddressLoaded] = useState(false)
+  const [addressError, setAddressError] = useState<string | null>(null)
 
   const [address, setAddress] = useState<AddressData>({
     fullName: '',
@@ -54,27 +55,54 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
   })
 
   useEffect(() => {
-    getShippingAddress().then((addr) => {
-      if (addr) {
-        setAddress({
-          fullName: addr.fullName,
-          address: addr.address,
-          city: addr.city,
-          state: addr.state,
-          zipCode: addr.zipCode,
-          country: addr.country,
-          phone: addr.phone ?? '',
-        })
-      }
-      setAddressLoaded(true)
-    })
+    let cancelled = false
+
+    getShippingAddress()
+      .then((addr) => {
+        if (cancelled) return
+        if (addr) {
+          setAddress({
+            fullName: addr.fullName ?? '',
+            address: addr.address ?? '',
+            city: addr.city ?? '',
+            state: addr.state ?? '',
+            zipCode: addr.zipCode ?? '',
+            country: addr.country ?? '',
+            phone: addr.phone ?? '',
+          })
+        }
+        setAddressLoaded(true)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('Failed to load shipping address:', msg)
+        setAddressError('Could not load your address. You can enter it manually.')
+        setAddressLoaded(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function handleSaveAddress() {
     setSavingAddress(true)
-    await saveShippingAddress(address)
-    setSavingAddress(false)
-    setEditingAddress(false)
+    setAddressError(null)
+    try {
+      const result = await saveShippingAddress(address)
+      if (!result.success) {
+        setAddressError(result.error)
+      } else {
+        setEditingAddress(false)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Failed to save shipping address:', msg)
+      setAddressError('Failed to save address. Please try again.')
+    } finally {
+      setSavingAddress(false)
+    }
   }
 
   const subtotal = product.price * qty
@@ -137,7 +165,16 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">Loading your address...</p>
               </div>
-            ) : editingAddress ? (
+            ) : (
+              <>
+                {addressError && (
+                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {addressError}
+                  </div>
+                )}
+
+                {editingAddress ? (
               <div className="mt-4 space-y-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
@@ -215,6 +252,8 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
                   <Pencil className="h-4 w-4" /> {hasAddress ? 'Change Address' : 'Add Address'}
                 </button>
               </div>
+            )}
+              </>
             )}
 
             {!editingAddress && hasAddress && (

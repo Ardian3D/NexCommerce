@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Bell, MessageSquare, ShoppingCart, Menu, ChevronDown } from 'lucide-react'
+import { Search, Bell, MessageSquare, ShoppingCart, Menu, ChevronDown, Package, X } from 'lucide-react'
 import Image from 'next/image'
+import type { ProductAlert } from '@/lib/actions/notifications'
 
 function IconButton({
   icon: Icon,
@@ -37,11 +38,29 @@ type Props = {
   onMenuClick?: () => void
   walletAddress?: string
   pendingOrdersCount?: number
+  productAlerts?: ProductAlert[]
 }
 
-export function BuyerTopbar({ onMenuClick, walletAddress, pendingOrdersCount = 0 }: Props) {
+export function BuyerTopbar({ onMenuClick, walletAddress, pendingOrdersCount = 0, productAlerts = [] }: Props) {
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    if (notifOpen) {
+      document.addEventListener('mousedown', handleClick)
+      return () => document.removeEventListener('mousedown', handleClick)
+    }
+  }, [notifOpen])
+
+  const alertCount = productAlerts.length
 
   const shortAddress = walletAddress
     ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
@@ -89,7 +108,72 @@ export function BuyerTopbar({ onMenuClick, walletAddress, pendingOrdersCount = 0
       </form>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <IconButton icon={Bell} count={pendingOrdersCount} href="/buyer/orders" />
+        {/* Notification Bell with dropdown */}
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setNotifOpen((v) => !v)}
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Notifications"
+          >
+            <Bell className="h-5 w-5" />
+            {alertCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                {alertCount > 9 ? '9+' : alertCount}
+              </span>
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-border bg-card p-2 shadow-xl z-50">
+              <div className="flex items-center justify-between px-3 py-2">
+                <h3 className="text-sm font-bold text-foreground">New Product Alerts</h3>
+                <button
+                  onClick={() => setNotifOpen(false)}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {alertCount === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Bell className="h-8 w-8 text-muted-foreground/40" />
+                  <p className="mt-2 text-xs text-muted-foreground">No new products launched yet.</p>
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto space-y-1">
+                  {productAlerts.map((alert, i) => (
+                    <Link
+                      key={i}
+                      href={`/product/${alert.productSlug}`}
+                      onClick={() => setNotifOpen(false)}
+                      className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                        <Package className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {alert.productName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          <span className="inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 mr-1.5">
+                            {alert.category}
+                          </span>
+                          by {alert.sellerName}
+                        </p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {alert.launchedAt}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <IconButton icon={MessageSquare} href="/buyer/messages" />
         <IconButton icon={ShoppingCart} href="/cart" />
 

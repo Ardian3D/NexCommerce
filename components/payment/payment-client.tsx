@@ -79,6 +79,8 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
 
     setStatus('confirming')
 
+    console.log(`[Payment] Waiting for blockchain confirmation...`)
+
     try {
       // Use the strategy pattern with latest blockhash for confirmation
       const latestBlockhash = await connection.getLatestBlockhash('confirmed')
@@ -92,16 +94,19 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
       )
 
       if (confirmation.value.err) {
+        console.error(`[Payment] ❌ Blockchain rejected: ${JSON.stringify(confirmation.value.err)}`)
         if (mountedRef.current) {
           setError('Transaction failed on blockchain. Please try again.')
           setStatus('idle')
         }
         return
       }
+
+      console.log(`[Payment] ✅ Confirmed on-chain`)
     } catch (confirmErr: unknown) {
       const cmsg = confirmErr instanceof Error ? confirmErr.message : String(confirmErr)
       // If confirm fails but TX was already sent, attempt order anyway — chain may have it
-      console.warn('confirmTransaction swallowed, proceeding with order:', cmsg)
+      console.warn(`[Payment] ⚠️ confirmTransaction failed, proceeding: ${cmsg}`)
     }
 
     if (!mountedRef.current) return
@@ -109,13 +114,17 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
     setTxHash(signature)
     setStatus('placing')
 
+    console.log(`[Payment] Creating order in DB...`)
+
     // Step 4: Create order in DB
     const result = await placeOrder({ productSlug: product.slug, qty })
     if (!mountedRef.current) return
 
     if (result.success) {
+      console.log(`[Payment] ✅ Order created: ${result.orderId}`)
       router.push(`/order/success?orderId=${result.orderId}&tx=${signature}`)
     } else {
+      console.error(`[Payment] ❌ Order creation failed: ${result.error}`)
       setError('Payment confirmed on-chain but order creation failed: ' + result.error)
       setStatus('idle')
     }
@@ -127,8 +136,14 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
     const sellerPubkey = new PublicKey(SELLER_WALLET)
     const amountLamports = Math.round(totalSol * LAMPORTS_PER_SOL)
 
+    console.log(`[Payment] ===== Attempt ${retryCount + 1}/${MAX_RETRIES} =====`)
+    console.log(`[Payment] Buyer: ${publicKey.toBase58()}`)
+    console.log(`[Payment] Seller: ${SELLER_WALLET}`)
+    console.log(`[Payment] Amount: ${totalSol} SOL (${amountLamports} lamports)`)
+
     // Get fresh blockhash for each attempt
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized')
+    console.log(`[Payment] Blockhash: ${blockhash.slice(0, 16)}... (valid up to ${lastValidBlockHeight})`)
 
     const transaction = new Transaction({
       feePayer: publicKey,
@@ -142,12 +157,16 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
       }),
     )
 
+    console.log(`[Payment] Sending transaction to Phantom for signing...`)
+
     // Step 2: Send to wallet for signing → Phantom popup opens here
     const signature = await sendTransaction(transaction, connection, {
       skipPreflight: false,
       preflightCommitment: 'confirmed',
       maxRetries: 3,
     })
+
+    console.log(`[Payment] ✅ Wallet approved! Signature: ${signature.slice(0, 16)}...`)
 
     await confirmAndPlace(signature)
   }, [publicKey, sendTransaction, connection, totalSol, confirmAndPlace])

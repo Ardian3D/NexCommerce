@@ -252,6 +252,11 @@ function ProductCard({ product, view }: { product: Product; view: 'grid' | 'list
           <span className="truncate">{product.seller}</span>
           <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
         </div>
+        {product.sellerWallet && (
+          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground truncate">
+            {product.sellerWallet.slice(0, 4)}...{product.sellerWallet.slice(-4)}
+          </p>
+        )}
 
         <div className="mt-2 flex items-center gap-2">
           <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tierStyles[product.tier]}`}>

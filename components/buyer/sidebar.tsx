@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   Store,
@@ -17,8 +18,10 @@ import {
   ChevronDown,
   Gift,
   X,
+  LogOut,
 } from 'lucide-react'
 import Image from 'next/image'
+import { useWallet } from '@solana/wallet-adapter-react'
 
 type NavItem = {
   label: string
@@ -160,31 +163,71 @@ export function BuyerSidebar({
             <p className="mt-3 text-[11px] leading-relaxed text-slate-300">
               Invite your friends and earn NEX rewards together!
             </p>
-            <button className="mt-3 w-full rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90">
-              Invite Now
+            <button className="mt-3 w-full rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 py-2 text-xs font-semibold text-white opacity-50 cursor-not-allowed" disabled>
+              Coming Soon
             </button>
           </div>
         </div>
 
         {/* Wallet footer */}
         <div className="border-t border-white/10 px-4 py-3">
-          <button className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg">
-              <Image src="/phantom-navbar-logo.png" alt="Phantom" width={35} height={35} />
-            </span>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate text-sm font-semibold text-white">
-                {shortAddress}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Phantom
-              </span>
-            </span>
-            <ChevronDown className="h-4 w-4 text-slate-400" />
-          </button>
+          <WalletFooter address={walletAddress} />
         </div>
       </aside>
     </>
+  )
+}
+
+function WalletFooter({ address }: { address?: string }) {
+  const router = useRouter()
+  const { disconnect } = useWallet()
+  const [open, setOpen] = useState(false)
+
+  const shortAddress = address
+    ? `${address.slice(0, 4)}...${address.slice(-4)}`
+    : '—'
+
+  async function handleDisconnect() {
+    try {
+      await disconnect()
+    } catch {
+      // wallet may already be disconnected
+    }
+    router.push('/connect')
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5"
+      >
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg">
+          <Image src="/phantom-navbar-logo.png" alt="Phantom" width={35} height={35} />
+        </span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block truncate text-sm font-semibold text-white">
+            {shortAddress}
+          </span>
+          <span className="flex items-center gap-1 text-xs text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Phantom
+          </span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-xl border border-white/10 bg-[#1a1f2e] shadow-xl">
+          <button
+            onClick={handleDisconnect}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-white/5"
+          >
+            <LogOut className="h-4 w-4" />
+            Disconnect
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

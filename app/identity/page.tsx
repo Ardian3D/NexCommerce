@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getServerSession } from '@/lib/auth/session'
-import { getIdentityData } from '@/lib/actions/identity'
+import { getIdentityData, getIdentityStats } from '@/lib/actions/identity'
 import { BuyerShell } from '@/components/buyer/shell'
 import { IdentityClient } from '@/components/identity/identity-client'
 
@@ -15,6 +15,7 @@ export default async function IdentityPage() {
   if (!session?.sub) redirect('/connect')
 
   const identity = await getIdentityData(session.sub, 'buyer')
+  const identityStats = await getIdentityStats(session.sub, 'buyer')
 
   return (
     <BuyerShell
@@ -33,6 +34,8 @@ export default async function IdentityPage() {
           trustScore: identity.trustScore,
           tier: identity.tier,
         }}
+        stats={identityStats}
+        recentTransactions={identityStats.recentTransactions}
       />
     </BuyerShell>
   )

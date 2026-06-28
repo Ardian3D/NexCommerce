@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import {
   ShieldCheck,
@@ -26,6 +26,7 @@ import {
   PackageCheck,
 } from 'lucide-react'
 import { IdentityCard, type IdentityData } from '@/components/auth/identity-card'
+import type { IdentityStats, RecentTransaction } from '@/lib/actions/identity'
 
 type Role = 'buyer' | 'seller'
 
@@ -176,15 +177,66 @@ type ActivityTab = (typeof activityTabs)[number]
 export function IdentityClient({
   role = 'buyer',
   cardData,
+  stats,
+  recentTransactions,
 }: {
   role?: Role
   cardData?: Partial<IdentityData>
+  stats?: IdentityStats
+  recentTransactions?: RecentTransaction[]
 }) {
   const [tab, setTab] = useState<ActivityTab>('Transactions')
   const cfg = role === 'seller' ? sellerConfig : buyerConfig
 
   // Merge card data: props override > hardcoded config
   const card = { ...cfg.card, ...cardData }
+
+  // ── Merge real stats with simulated fallback ──
+  const liveStats: Stat[] = useMemo(() => {
+    if (!stats) return cfg.stats
+    const tierLabel = card.tier
+    const isBuyer = role === 'buyer'
+    return [
+      {
+        icon: isBuyer ? ArrowLeftRight : PackageCheck,
+        label: isBuyer ? 'Total Transactions' : 'Total Sales',
+        value: stats.totalOrders.toLocaleString(),
+        note: 'Across all orders',
+        tone: 'text-emerald-600 bg-emerald-100',
+      },
+      {
+        icon: CircleDollarSign,
+        label: isBuyer ? 'Total Spent' : 'Total Revenue',
+        value: stats.totalSpent,
+        note: `Across ${stats.totalOrders} orders`,
+        tone: 'text-blue-600 bg-blue-100',
+      },
+      {
+        icon: isBuyer ? MessageSquareText : Star,
+        label: isBuyer ? 'Verified Reviews' : 'Seller Rating',
+        value: stats.reviewCount > 0 ? stats.reviewCount.toLocaleString() : isBuyer ? '0' : '—',
+        note: stats.reviewCount > 0 ? `${stats.reviewCount} verified` : 'No reviews yet',
+        tone: 'text-violet-600 bg-violet-100',
+      },
+      {
+        icon: isBuyer ? Star : Trophy,
+        label: isBuyer ? 'Member Level' : 'Seller Level',
+        value: tierLabel,
+        note: tierLabel === 'Elite' || tierLabel === 'Titanium'
+          ? `Top 10% of users`
+          : 'Keep building reputation',
+        tone: 'text-amber-600 bg-amber-100',
+      },
+    ]
+  }, [stats, card.tier, role, cfg.stats])
+
+  // ── Merge real transactions with simulated fallback ──
+  const liveActivities: Activity[] = useMemo(() => {
+    if (recentTransactions && recentTransactions.length > 0) {
+      return recentTransactions as Activity[]
+    }
+    return cfg.activities
+  }, [recentTransactions, cfg.activities])
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -220,7 +272,7 @@ export function IdentityClient({
 
       {/* Stat cards */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {cfg.stats.map((s) => (
+        {liveStats.map((s) => (
           <div key={s.label} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
             <span className={`flex h-9 w-9 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${s.tone}`}>
               <s.icon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -376,7 +428,7 @@ export function IdentityClient({
         <div className="mt-4">
           {tab === 'Transactions' && (
             <ul className="divide-y divide-border">
-              {cfg.activities.map((t) => (
+              {liveActivities.map((t) => (
                 <li key={t.name} className="flex items-center gap-3 py-3">
                   <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
                     <Image src={t.image || '/placeholder.svg'} alt={t.name} fill className="object-cover" />

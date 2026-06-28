@@ -8,6 +8,7 @@ export type Product = {
   name: string
   subtitle: string
   seller: string
+  sellerWallet: string
   tier: Tier
   score: number
   price: number
@@ -44,6 +45,7 @@ function toProduct(row: any): Product {
     name: row.name,
     subtitle: row.subtitle ?? '',
     seller: row.seller?.sellerProfile?.storeName ?? row.seller?.fullName ?? '',
+    sellerWallet: row.seller?.walletAddress ?? '',
     tier: row.tier as Tier,
     score: row.score ?? 0,
     price: Number(row.price),
@@ -72,6 +74,7 @@ function toProduct(row: any): Product {
 const sellerInclude = {
   select: {
     fullName: true,
+    walletAddress: true,
     _count: { select: { products: true } },
     sellerProfile: {
       select: { storeName: true, memberSince: true, responseTime: true },

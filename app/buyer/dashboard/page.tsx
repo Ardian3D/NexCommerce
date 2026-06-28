@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/session'
 import { getBuyerDashboardData } from '@/lib/actions/buyer-dashboard'
+import { getNewProductAlerts } from '@/lib/actions/notifications'
 import { BuyerShell } from '@/components/buyer/shell'
 import { BuyerWelcomeBanner } from '@/components/buyer/welcome-banner'
 import { BuyerStatCards } from '@/components/buyer/stat-cards'
@@ -11,7 +12,10 @@ export default async function BuyerDashboardPage() {
   const session = await getServerSession()
   if (!session?.sub) redirect('/connect')
 
-  const data = await getBuyerDashboardData(session.sub)
+  const [data, productAlerts] = await Promise.all([
+    getBuyerDashboardData(session.sub),
+    getNewProductAlerts(5),
+  ])
 
   return (
     <BuyerShell
@@ -19,6 +23,7 @@ export default async function BuyerDashboardPage() {
       displayName={data.displayName}
       tier={data.tier}
       pendingOrdersCount={data.pendingOrders}
+      productAlerts={productAlerts}
     >
       <div className="space-y-6">
         <BuyerWelcomeBanner

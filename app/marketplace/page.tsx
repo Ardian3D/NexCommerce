@@ -2,11 +2,15 @@ import { BuyerShell } from '@/components/buyer/shell'
 import { MarketContent } from '@/components/marketplace/market-content'
 import { MarketAside } from '@/components/marketplace/market-aside'
 import { getProducts } from '@/lib/products'
+import { getTopSellers } from '@/lib/actions/top-sellers'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MarketplacePage() {
-  const products = await getProducts()
+  const [products, topSellers] = await Promise.all([
+    getProducts(),
+    getTopSellers(5),
+  ])
 
   return (
     <BuyerShell>
@@ -15,7 +19,7 @@ export default async function MarketplacePage() {
           <MarketContent products={products} />
         </div>
         <aside className="w-full shrink-0 2xl:w-80">
-          <MarketAside />
+          <MarketAside sellers={topSellers} />
         </aside>
       </div>
     </BuyerShell>

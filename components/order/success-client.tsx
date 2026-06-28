@@ -264,10 +264,12 @@ export function SuccessClient({
               <div className="leading-tight">
                 <p className="text-sm font-bold text-emerald-700">Transaction Confirmed</p>
                 <a
-                  href="#"
+                  href={txHash ? `https://explorer.solana.com/tx/${txHash}?cluster=devnet` : '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Verified on Solana Explorer <ExternalLink className="h-3 w-3" />
+                  View on Solana Explorer <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             </div>

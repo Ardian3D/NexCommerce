@@ -2,29 +2,17 @@
 
 import Image from 'next/image'
 import { BadgeCheck, ShieldCheck, CreditCard, Globe } from 'lucide-react'
+import type { TopSeller } from '@/lib/actions/top-sellers'
 
-type Seller = {
-  rank: number
-  name: string
-  tier: 'Elite' | 'Ascent' | 'Titanium'
-  products: string
-  score: number
-  initials: string
-}
-
-const tierStyles: Record<Seller['tier'], string> = {
+const tierStyles: Record<string, string> = {
   Elite: 'bg-violet-100 text-violet-700',
   Ascent: 'bg-blue-100 text-blue-700',
   Titanium: 'bg-slate-200 text-slate-700',
+  Legendary: 'bg-amber-100 text-amber-700',
+  Verified: 'bg-emerald-100 text-emerald-700',
+  Trusted: 'bg-sky-100 text-sky-700',
+  Starter: 'bg-gray-100 text-gray-600',
 }
-
-const sellers: Seller[] = [
-  { rank: 1, name: 'Elite Gear Store', tier: 'Elite', products: '1,234 Products', score: 96, initials: 'A' },
-  { rank: 2, name: 'Tech Haven', tier: 'Ascent', products: '856 Products', score: 85, initials: 'THE' },
-  { rank: 3, name: 'NextGen Store', tier: 'Ascent', products: '1,102 Products', score: 88, initials: 'N' },
-  { rank: 4, name: 'SoundSphere', tier: 'Elite', products: '654 Products', score: 93, initials: 'S' },
-  { rank: 5, name: 'PhotoWorld', tier: 'Titanium', products: '432 Products', score: 98, initials: 'PW' },
-]
 
 const protections = [
   { icon: ShieldCheck, title: 'Buyer Protection', desc: 'Get full refund for eligible orders.' },
@@ -32,7 +20,7 @@ const protections = [
   { icon: Globe, title: 'Global Shipping', desc: 'Fast & reliable worldwide delivery.' },
 ]
 
-export function MarketAside() {
+export function MarketAside({ sellers = [] }: { sellers?: TopSeller[] }) {
   return (
     <div className="space-y-5">
       {/* Gaming promo */}
@@ -82,11 +70,16 @@ export function MarketAside() {
                   <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
                 </div>
                 <div className="mt-0.5 flex items-center gap-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tierStyles[s.tier]}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tierStyles[s.tier] || 'bg-gray-100 text-gray-600'}`}>
                     {s.tier}
                   </span>
                   <span className="text-[11px] text-muted-foreground">{s.products}</span>
                 </div>
+                {s.walletAddress && (
+                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground truncate">
+                    {s.walletAddress.slice(0, 4)}...{s.walletAddress.slice(-4)}
+                  </p>
+                )}
               </div>
               <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-600">
                 <BadgeCheck className="h-3.5 w-3.5" />
