@@ -47,7 +47,7 @@ type IdentityConfig = {
     country: string
     memberSince: string
     trustScore: number
-    tier: 'Elite' | 'Verified' | 'Trusted' | 'Legendary'
+    tier: string
   }
   ringScore: number
   stats: Stat[]

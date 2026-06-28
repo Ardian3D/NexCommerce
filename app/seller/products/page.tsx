@@ -136,7 +136,7 @@ export default async function SellerProductsPage() {
 
                   <div className="mt-3 flex items-center gap-2">
                     <Link
-                      href={`/seller/products/${p.slug}`}
+                      href={`/product/${p.slug}`}
                       className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
                     >
                       <Eye className="h-3.5 w-3.5" />

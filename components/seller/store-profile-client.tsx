@@ -74,7 +74,7 @@ export function StoreProfileClient(props: Props) {
     <div className="mx-auto max-w-6xl space-y-6">
       {/* Banner + identity */}
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="relative h-40 w-full bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 sm:h-56">
+        <div className="relative h-28 w-full bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 sm:h-36">
           <button className="absolute right-4 top-4 flex items-center gap-1.5 rounded-lg bg-black/40 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/55">
             <Pencil className="h-3.5 w-3.5" />
             Edit Banner
