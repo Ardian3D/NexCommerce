@@ -92,8 +92,7 @@ export function SuccessClient({
             <span className="text-emerald-500">Confirmed!</span>
           </h1>
           <p className="mt-4 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-            Thank you! Your order has been placed successfully. You will receive an email confirmation
-            shortly.
+            Thank you! Your order has been placed successfully. The transaction is recorded on Solana Devnet.
           </p>
         </div>
       </div>
@@ -233,7 +232,7 @@ export function SuccessClient({
                     onClick={copyHash}
                     className="inline-flex items-center gap-1.5 font-semibold text-foreground transition-colors hover:text-primary"
                   >
-                    {displayTxHash.slice(0, 12)}...
+                    <span className="font-mono text-xs">{displayTxHash.slice(0, 16)}...</span>
                     {copied ? (
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
                     ) : (

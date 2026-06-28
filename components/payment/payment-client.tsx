@@ -22,6 +22,7 @@ import {
   Info,
   ArrowLeft,
   Zap,
+  AlertTriangle,
 } from 'lucide-react'
 import { type Product } from '@/lib/products'
 import { Stepper } from '@/components/checkout/stepper'
@@ -35,15 +36,15 @@ const SELLER_WALLET = '8XHkQF8vXyQ5VjZ5mPxRq3STk9LpNwMc7bDfGh2jKm4R'
 
 export function PaymentClient({ product, qty }: { product: Product; qty: number }) {
   const router = useRouter()
-  const { publicKey, sendTransaction, connected } = useWallet()
+  const { publicKey, sendTransaction, connected, connecting } = useWallet()
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
 
   const subtotal = product.price * qty
   const shippingFee = 4.99
-  const transactionFee = 0.75
-  const total = subtotal + shippingFee + transactionFee
+  const total = subtotal + shippingFee
+  const totalSol = total // 1 USD ≈ 1 SOL on devnet for simplicity
   const fmt = (n: number) => `$${n.toFixed(2)}`
   const busy = status !== 'idle'
 
@@ -70,10 +71,18 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
 
     try {
       // Real Solana transaction on devnet
+      const connection = new Connection(clusterApiUrl('devnet'), 'confirmed')
       const sellerPubkey = new PublicKey(SELLER_WALLET)
-      const amountLamports = Math.round(total * LAMPORTS_PER_SOL)
+      const amountLamports = Math.round(totalSol * LAMPORTS_PER_SOL)
 
-      const transaction = new Transaction().add(
+      // Step 1: Build transaction
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+
+      const transaction = new Transaction({
+        feePayer: publicKey,
+        blockhash,
+        lastValidBlockHeight,
+      }).add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: sellerPubkey,
@@ -81,39 +90,52 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
         }),
       )
 
-      // Step 1: Awaiting wallet approval
-      const connection = new Connection(clusterApiUrl('devnet'), 'confirmed')
+      // Step 2: Send to wallet for signing
       const signature = await sendTransaction(transaction, connection)
 
       setStatus('confirming')
 
-      // Step 2: Confirming on Solana Devnet
-      // Wait for confirmation (polling)
-      await new Promise((r) => setTimeout(r, 3000))
+      // Step 3: Wait for blockchain confirmation
+      const confirmation = await connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      }, 'confirmed')
+
+      if (confirmation.value.err) {
+        setError('Transaction failed on blockchain. Please try again.')
+        setStatus('idle')
+        return
+      }
 
       setTxHash(signature)
       setStatus('placing')
 
-      // Step 3: Create order in DB
+      // Step 4: Create order in DB
       const result = await placeOrder({ productSlug: product.slug, qty })
       if (result.success) {
         router.push(
-          `/order/success?orderId=${result.orderId}&tx=${signature.slice(0, 12)}`,
+          `/order/success?orderId=${result.orderId}&tx=${signature}`,
         )
       } else {
-        setError('Payment confirmed but order creation failed: ' + result.error)
+        setError('Payment confirmed on-chain but order creation failed: ' + result.error)
         setStatus('idle')
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('User rejected')) {
+      if (msg.includes('rejected') || msg.includes('User rejected')) {
         setError('Transaction was rejected in wallet.')
+      } else if (msg.includes('insufficient')) {
+        setError('Insufficient SOL balance. Please fund your wallet on devnet.')
       } else {
-        setError(`Payment failed: ${msg.slice(0, 80)}`)
+        setError(`Payment error: ${msg.slice(0, 100)}`)
       }
       setStatus('idle')
     }
   }
+
+  const isWalletReady = connected && publicKey
+  const isWalletLoading = connecting
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
@@ -127,7 +149,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
           <div>
             <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Payment</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Approve the transaction in your wallet to complete the purchase.
+              Approve the transaction in your Phantom wallet to complete the purchase.
             </p>
           </div>
         </div>
@@ -139,7 +161,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
           <section className="rounded-2xl bg-card p-5 ring-1 ring-border sm:p-6">
             <h2 className="text-lg font-bold text-foreground">Confirm Your Payment</h2>
 
-            {/* Wallet */}
+            {/* Wallet status */}
             <div className="mt-4 flex items-center justify-between rounded-xl p-3 ring-1 ring-border">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-violet-600">
@@ -148,21 +170,31 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
                 <div className="leading-tight">
                   <p className="text-sm font-bold text-foreground">Phantom Wallet</p>
                   <p className="text-xs text-muted-foreground">
-                    {publicKey
+                    {isWalletReady
                       ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
-                      : 'Not connected'}
+                      : isWalletLoading
+                        ? 'Connecting...'
+                        : 'Not connected'}
                   </p>
                 </div>
               </div>
               <span
                 className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                  connected ? 'text-emerald-600' : 'text-amber-600'
+                  isWalletReady ? 'text-emerald-600' : isWalletLoading ? 'text-amber-600' : 'text-muted-foreground'
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                {connected ? 'Connected' : 'Simulated'}
+                <span className={`h-2 w-2 rounded-full ${isWalletReady ? 'bg-emerald-500' : isWalletLoading ? 'bg-amber-500' : 'bg-gray-400'}`} />
+                {isWalletReady ? 'Connected' : isWalletLoading ? 'Connecting...' : 'Simulated'}
               </span>
             </div>
+
+            {/* Warning for simulated mode */}
+            {!isWalletReady && !isWalletLoading && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Wallet not connected. Payment will be simulated. Connect Phantom wallet to use real Solana Devnet.
+              </div>
+            )}
 
             {/* Transaction breakdown */}
             <div className="mt-4 space-y-3 rounded-xl bg-secondary/60 p-4 text-sm">
@@ -182,7 +214,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-bold text-foreground">Total Payment</span>
                 <span className="text-right">
-                  <span className="block text-base font-black text-foreground">{total.toFixed(2)} SOL</span>
+                  <span className="block text-base font-black text-foreground">{totalSol.toFixed(6)} SOL</span>
                   <span className="block text-xs text-muted-foreground">≈ {fmt(total)} USD</span>
                 </span>
               </div>
@@ -200,23 +232,23 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
               />
               <StatusRow
                 label="Creating your order"
-                state={status === 'placing' ? 'active' : status === 'idle' || status === 'approving' || status === 'confirming' ? 'pending' : 'done'}
+                state={status === 'placing' ? 'active' : 'done'}
               />
             </div>
 
             <button
               onClick={handlePay}
-              disabled={busy}
+              disabled={busy || isWalletLoading}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-violet-600 px-4 py-3.5 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-80"
             >
               {status === 'idle' && (
                 <>
-                  <Lock className="h-4 w-4" /> Confirm Payment
+                  <Lock className="h-4 w-4" /> {isWalletReady ? 'Pay with Phantom' : 'Pay (Simulated)'}
                 </>
               )}
               {status === 'approving' && (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Waiting for approval...
+                  <Loader2 className="h-4 w-4 animate-spin" /> Awaiting wallet approval...
                 </>
               )}
               {status === 'confirming' && (
@@ -238,14 +270,9 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
             )}
 
             {txHash && (
-              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-                ✅ Transaction: {txHash.slice(0, 12)}... (Devnet)
-              </div>
-            )}
-
-            {!busy && !connected && (
-              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                ⚠️ Wallet not connected. Payment will be simulated for testing.
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs">
+                <span className="font-medium text-emerald-700">✅ Confirmed on Devnet</span>
+                <p className="mt-0.5 font-mono text-[10px] text-emerald-600 break-all">{txHash}</p>
               </div>
             )}
 
@@ -258,7 +285,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
               </Link>
             ) : (
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                Please keep this window open while we process your payment.
+                Please keep this window open. Phantom will prompt you to approve.
               </p>
             )}
           </section>
@@ -269,7 +296,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
             </span>
             <p className="text-xs text-muted-foreground">
               <span className="font-bold text-foreground">Protected by Solana Devnet.</span>{' '}
-              Payment processed securely for testing.
+              Real blockchain transaction processed securely.
             </p>
           </div>
         </div>
@@ -299,7 +326,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
               <span className="text-base font-bold text-foreground">Total</span>
               <span className="flex items-baseline gap-1.5">
                 <span className="text-xs font-semibold text-muted-foreground">SOL</span>
-                <span className="text-2xl font-black text-foreground">{total.toFixed(2)}</span>
+                <span className="text-2xl font-black text-foreground">{totalSol.toFixed(6)}</span>
               </span>
             </div>
 
@@ -336,11 +363,7 @@ function StatusRow({ label, state }: { label: string; state: 'pending' | 'active
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
         )}
       </span>
-      <span
-        className={`text-sm ${
-          state === 'pending' ? 'text-muted-foreground' : 'font-semibold text-foreground'
-        }`}
-      >
+      <span className={`text-sm ${state === 'pending' ? 'text-muted-foreground' : 'font-semibold text-foreground'}`}>
         {label}
       </span>
     </div>
