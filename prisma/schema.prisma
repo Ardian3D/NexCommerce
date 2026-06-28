@@ -215,3 +215,19 @@ model AuthNonce {
   @@index([expiresAt])
   @@map("auth_nonces")
 }
+
+model ShippingAddress {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  fullName  String
+  address   String
+  city      String
+  state     String
+  zipCode   String
+  country   String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shipping_addresses")
+}

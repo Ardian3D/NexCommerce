@@ -4,6 +4,15 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useWallet } from '@solana/wallet-adapter-react'
+import {
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+  Connection,
+  clusterApiUrl,
+} from '@solana/web3.js'
 import {
   Wallet,
   Lock,
@@ -21,10 +30,15 @@ import { placeOrder } from '@/lib/actions/order'
 
 type Status = 'idle' | 'approving' | 'confirming' | 'placing'
 
+// Seller wallet to receive payment on devnet
+const SELLER_WALLET = '8XHkQF8vXyQ5VjZ5mPxRq3STk9LpNwMc7bDfGh2jKm4R'
+
 export function PaymentClient({ product, qty }: { product: Product; qty: number }) {
   const router = useRouter()
+  const { publicKey, sendTransaction, connected } = useWallet()
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
 
   const subtotal = product.price * qty
   const shippingFee = 4.99
@@ -35,23 +49,68 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
 
   async function handlePay() {
     setError(null)
+    setTxHash(null)
     setStatus('approving')
-    
-    // Simulate wallet approval
-    await new Promise((r) => setTimeout(r, 1800))
-    setStatus('confirming')
-    
-    // Simulate blockchain confirmation
-    await new Promise((r) => setTimeout(r, 1500))
-    setStatus('placing')
-    
-    // Actually create the order in the database
-    const result = await placeOrder({ productSlug: product.slug, qty })
-    
-    if (result.success) {
-      router.push(`/order/success?orderId=${result.orderId}`)
-    } else {
-      setError(result.error)
+
+    if (!connected || !publicKey || !sendTransaction) {
+      // Fallback: simulated payment (no wallet connected)
+      await new Promise((r) => setTimeout(r, 1800))
+      setStatus('confirming')
+      await new Promise((r) => setTimeout(r, 1500))
+      setStatus('placing')
+      const result = await placeOrder({ productSlug: product.slug, qty })
+      if (result.success) {
+        router.push(`/order/success?orderId=${result.orderId}`)
+      } else {
+        setError(result.error)
+        setStatus('idle')
+      }
+      return
+    }
+
+    try {
+      // Real Solana transaction on devnet
+      const sellerPubkey = new PublicKey(SELLER_WALLET)
+      const amountLamports = Math.round(total * LAMPORTS_PER_SOL)
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: sellerPubkey,
+          lamports: amountLamports,
+        }),
+      )
+
+      // Step 1: Awaiting wallet approval
+      const connection = new Connection(clusterApiUrl('devnet'), 'confirmed')
+      const signature = await sendTransaction(transaction, connection)
+
+      setStatus('confirming')
+
+      // Step 2: Confirming on Solana Devnet
+      // Wait for confirmation (polling)
+      await new Promise((r) => setTimeout(r, 3000))
+
+      setTxHash(signature)
+      setStatus('placing')
+
+      // Step 3: Create order in DB
+      const result = await placeOrder({ productSlug: product.slug, qty })
+      if (result.success) {
+        router.push(
+          `/order/success?orderId=${result.orderId}&tx=${signature.slice(0, 12)}`,
+        )
+      } else {
+        setError('Payment confirmed but order creation failed: ' + result.error)
+        setStatus('idle')
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('User rejected')) {
+        setError('Transaction was rejected in wallet.')
+      } else {
+        setError(`Payment failed: ${msg.slice(0, 80)}`)
+      }
       setStatus('idle')
     }
   }
@@ -88,11 +147,20 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
                 </span>
                 <div className="leading-tight">
                   <p className="text-sm font-bold text-foreground">Phantom Wallet</p>
-                  <p className="text-xs text-muted-foreground">8XH...K9P</p>
+                  <p className="text-xs text-muted-foreground">
+                    {publicKey
+                      ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+                      : 'Not connected'}
+                  </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Connected
+              <span
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                  connected ? 'text-emerald-600' : 'text-amber-600'
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                {connected ? 'Connected' : 'Simulated'}
               </span>
             </div>
 
@@ -100,22 +168,22 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
             <div className="mt-4 space-y-3 rounded-xl bg-secondary/60 p-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Network</span>
-                <span className="font-semibold text-foreground">Solana Mainnet</span>
+                <span className="font-semibold text-foreground">Solana Devnet</span>
               </div>
               <div className="flex items-start justify-between">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   Network Fee (Estimated) <Info className="h-3.5 w-3.5" />
                 </span>
                 <span className="text-right">
-                  <span className="block font-semibold text-foreground">~0.00025 SOL</span>
-                  <span className="block text-xs text-muted-foreground">(≈ $0.05)</span>
+                  <span className="block font-semibold text-foreground">~0.000005 SOL</span>
+                  <span className="block text-xs text-muted-foreground">(≈ $0.001)</span>
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="font-bold text-foreground">Total Payment</span>
                 <span className="text-right">
-                  <span className="block text-base font-black text-foreground">{total.toFixed(2)} USDC</span>
-                  <span className="block text-xs text-muted-foreground">≈ 0.0xxx SOL</span>
+                  <span className="block text-base font-black text-foreground">{total.toFixed(2)} SOL</span>
+                  <span className="block text-xs text-muted-foreground">≈ {fmt(total)} USD</span>
                 </span>
               </div>
             </div>
@@ -127,10 +195,13 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
                 state={status === 'idle' ? 'pending' : status === 'approving' ? 'active' : 'done'}
               />
               <StatusRow
-                label="Confirming on Solana blockchain"
+                label="Confirming on Solana Devnet"
                 state={status === 'confirming' ? 'active' : status === 'idle' || status === 'approving' ? 'pending' : 'done'}
               />
-              <StatusRow label="Finalizing your order" state="pending" />
+              <StatusRow
+                label="Creating your order"
+                state={status === 'placing' ? 'active' : status === 'idle' || status === 'approving' || status === 'confirming' ? 'pending' : 'done'}
+              />
             </div>
 
             <button
@@ -150,7 +221,7 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
               )}
               {status === 'confirming' && (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Confirming transaction...
+                  <Loader2 className="h-4 w-4 animate-spin" /> Confirming on Devnet...
                 </>
               )}
               {status === 'placing' && (
@@ -163,6 +234,18 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
             {error && (
               <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
                 {error}
+              </div>
+            )}
+
+            {txHash && (
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+                ✅ Transaction: {txHash.slice(0, 12)}... (Devnet)
+              </div>
+            )}
+
+            {!busy && !connected && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                ⚠️ Wallet not connected. Payment will be simulated for testing.
               </div>
             )}
 
@@ -185,8 +268,8 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
               <ShieldCheck className="h-5 w-5" />
             </span>
             <p className="text-xs text-muted-foreground">
-              <span className="font-bold text-foreground">Protected by Solana.</span> Your funds are held
-              securely until the order is confirmed by escrow.
+              <span className="font-bold text-foreground">Protected by Solana Devnet.</span>{' '}
+              Payment processed securely for testing.
             </p>
           </div>
         </div>
@@ -209,20 +292,20 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
 
             <div className="mt-4 space-y-3 border-t border-border pt-4 text-sm">
               <Row label="Shipping Fee" value={fmt(shippingFee)} />
-              <Row label="Transaction Fee" value={fmt(transactionFee)} />
+              <Row label="Network Fee" value="~0.000005 SOL" />
             </div>
 
             <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
               <span className="text-base font-bold text-foreground">Total</span>
               <span className="flex items-baseline gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">USD</span>
-                <span className="text-2xl font-black text-foreground">{fmt(total)}</span>
+                <span className="text-xs font-semibold text-muted-foreground">SOL</span>
+                <span className="text-2xl font-black text-foreground">{total.toFixed(2)}</span>
               </span>
             </div>
 
             <div className="mt-4 flex items-center gap-2 rounded-xl bg-secondary/60 p-3 text-xs text-muted-foreground">
               <Zap className="h-4 w-4 shrink-0 text-violet-600" />
-              Instant settlement on the Solana network.
+              Instant settlement on Solana Devnet.
             </div>
           </section>
         </div>

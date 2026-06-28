@@ -6,7 +6,7 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom'
 import { clusterApiUrl } from '@solana/web3.js'
 
 export function SolanaProvider({ children }: { children: React.ReactNode }) {
-  const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), [])
+  const endpoint = useMemo(() => clusterApiUrl('devnet'), [])
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [])
 
   return (

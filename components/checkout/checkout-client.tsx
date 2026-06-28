@@ -16,14 +16,66 @@ import {
   Pencil,
   Info,
   Wallet,
+  X,
+  Check,
+  Loader2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { tierStyles, type Product } from '@/lib/products'
 import { Stepper } from '@/components/checkout/stepper'
 import { TrustBar } from '@/components/shared/trust-bar'
+import { saveShippingAddress, getShippingAddress } from '@/lib/actions/address'
+import { useEffect } from 'react'
+
+type AddressData = {
+  fullName: string
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+  phone: string
+}
 
 export function CheckoutClient({ product, initialQty }: { product: Product; initialQty: number }) {
   const [qty, setQty] = useState(Math.min(Math.max(1, initialQty), product.inStock))
+  const [editingAddress, setEditingAddress] = useState(false)
+  const [savingAddress, setSavingAddress] = useState(false)
+  const [addressLoaded, setAddressLoaded] = useState(false)
+
+  const [address, setAddress] = useState<AddressData>({
+    fullName: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    phone: '',
+  })
+
+  useEffect(() => {
+    getShippingAddress().then((addr) => {
+      if (addr) {
+        setAddress({
+          fullName: addr.fullName,
+          address: addr.address,
+          city: addr.city,
+          state: addr.state,
+          zipCode: addr.zipCode,
+          country: addr.country,
+          phone: addr.phone ?? '',
+        })
+      }
+      setAddressLoaded(true)
+    })
+  }, [])
+
+  async function handleSaveAddress() {
+    setSavingAddress(true)
+    await saveShippingAddress(address)
+    setSavingAddress(false)
+    setEditingAddress(false)
+  }
 
   const subtotal = product.price * qty
   const shippingFee = 4.99
@@ -32,10 +84,14 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
   const savings = product.oldPrice ? (product.oldPrice - product.price) * qty : 0
 
   const fmt = (n: number) => `$${n.toFixed(2)}`
+  const inputClass =
+    'h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20'
+
+  const hasAddress =
+    address.fullName && address.address && address.city && address.country
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Header + stepper */}
       <div className="flex flex-col gap-5">
         <Stepper current={1} />
         <div className="flex items-start gap-4">
@@ -51,7 +107,6 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
         </div>
       </div>
 
-      {/* Secure banner */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -60,24 +115,120 @@ export function CheckoutClient({ product, initialQty }: { product: Product; init
           <div className="leading-tight">
             <p className="text-sm font-bold text-foreground">Secure Checkout</p>
             <p className="text-xs text-muted-foreground">
-              Your payment is protected by Solana blockchain technology.
+              Your payment is protected by Solana Devnet blockchain technology.
             </p>
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border">
-          Secured by <span className="font-black text-foreground">SOLANA</span>
+          Secured by <span className="font-black text-foreground">SOLANA DEVNET</span>
         </span>
       </div>
 
-      {/* Two column layout */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Left: order items + shipping */}
         <div className="space-y-6">
           <OrderItems product={product} qty={qty} setQty={setQty} />
-          <ShippingInfo />
+
+          {/* Editable shipping address */}
+          <section className="rounded-2xl bg-card p-5 ring-1 ring-border sm:p-6">
+            <h2 className="text-lg font-bold text-foreground">2. Shipping Information</h2>
+
+            {!addressLoaded ? (
+              <div className="mt-4 flex items-center gap-3 rounded-xl bg-secondary/60 p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Loading your address...</p>
+              </div>
+            ) : editingAddress ? (
+              <div className="mt-4 space-y-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <input
+                    value={address.fullName}
+                    onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
+                    placeholder="Full Name"
+                    className={inputClass}
+                  />
+                  <input
+                    value={address.phone}
+                    onChange={(e) => setAddress({ ...address, phone: e.target.value })}
+                    placeholder="Phone (optional)"
+                    className={inputClass}
+                  />
+                </div>
+                <input
+                  value={address.address}
+                  onChange={(e) => setAddress({ ...address, address: e.target.value })}
+                  placeholder="Address"
+                  className={inputClass}
+                />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <input value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} placeholder="City" className={inputClass} />
+                  <input value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value })} placeholder="State" className={inputClass} />
+                  <input value={address.zipCode} onChange={(e) => setAddress({ ...address, zipCode: e.target.value })} placeholder="ZIP" className={inputClass} />
+                  <input value={address.country} onChange={(e) => setAddress({ ...address, country: e.target.value })} placeholder="Country" className={inputClass} />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveAddress}
+                    disabled={savingAddress}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-60"
+                  >
+                    {savingAddress ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    Save Address
+                  </button>
+                  <button
+                    onClick={() => setEditingAddress(false)}
+                    className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-col items-start justify-between gap-4 sm:flex-row">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="text-sm leading-relaxed text-muted-foreground">
+                    {hasAddress ? (
+                      <>
+                        <p className="flex items-center gap-2 font-bold text-foreground">
+                          {address.fullName}
+                          <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            Saved
+                          </span>
+                        </p>
+                        <p>{address.address}</p>
+                        <p>
+                          {address.city}{address.state ? `, ${address.state}` : ''} {address.zipCode}
+                        </p>
+                        <p>{address.country}</p>
+                        {address.phone && <p className="mt-1 text-xs">{address.phone}</p>}
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">No shipping address saved yet.</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingAddress(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+                >
+                  <Pencil className="h-4 w-4" /> {hasAddress ? 'Change Address' : 'Add Address'}
+                </button>
+              </div>
+            )}
+
+            {!editingAddress && hasAddress && (
+              <div className="mt-4 flex items-center gap-3 rounded-xl bg-secondary/60 p-4">
+                <Truck className="h-5 w-5 shrink-0 text-violet-600" />
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">Standard shipping</span> — estimated 3-5 business days
+                </p>
+              </div>
+            )}
+          </section>
         </div>
 
-        {/* Right rail: summary + payment */}
+        {/* Right rail */}
         <div className="space-y-6">
           <OrderSummary
             qty={qty}
@@ -123,9 +274,6 @@ function OrderItems({
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
                   {product.category}
-                </span>
-                <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                  {product.subcategory}
                 </span>
               </div>
             </div>
@@ -213,46 +361,6 @@ function Assurance({
   )
 }
 
-function ShippingInfo() {
-  return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-border sm:p-6">
-      <h2 className="text-lg font-bold text-foreground">2. Shipping Information</h2>
-
-      <div className="mt-4 flex items-start gap-3 rounded-xl bg-secondary/60 p-4">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-          <Truck className="h-5 w-5" />
-        </span>
-        <div className="leading-tight">
-          <p className="text-sm font-bold text-foreground">Digital Product / Physical Product</p>
-          <p className="text-xs text-muted-foreground">
-            This is a physical product. Please confirm your shipping address.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-col items-start justify-between gap-4 sm:flex-row">
-        <div className="flex items-start gap-3">
-          <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-          <div className="text-sm leading-relaxed text-muted-foreground">
-            <p className="flex items-center gap-2 font-bold text-foreground">
-              John Doe
-              <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                Default
-              </span>
-            </p>
-            <p>123 Blockchain Street</p>
-            <p>Solana City, SC 12345</p>
-            <p>United States</p>
-          </div>
-        </div>
-        <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary">
-          <Pencil className="h-4 w-4" /> Change Address
-        </button>
-      </div>
-    </section>
-  )
-}
-
 function OrderSummary({
   qty,
   subtotal,
@@ -277,7 +385,7 @@ function OrderSummary({
       <div className="mt-4 space-y-3 text-sm">
         <Row label={`Subtotal (${qty} item${qty > 1 ? 's' : ''})`} value={fmt(subtotal)} />
         <Row label="Shipping Fee" value={fmt(shippingFee)} info />
-        <Row label="Transaction Fee" value={fmt(transactionFee)} info />
+        <Row label="Network Fee" value={fmt(transactionFee)} info />
       </div>
 
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
@@ -333,7 +441,7 @@ function PaymentDetails({
           </span>
           <div className="leading-tight">
             <p className="text-sm font-bold text-foreground">Phantom Wallet</p>
-            <p className="text-xs text-muted-foreground">8XH...K9P</p>
+            <p className="text-xs text-muted-foreground">Devnet</p>
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
@@ -344,15 +452,15 @@ function PaymentDetails({
       <div className="mt-4 space-y-3 rounded-xl bg-secondary/60 p-4 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Network</span>
-          <span className="font-semibold text-foreground">Solana Mainnet</span>
+          <span className="font-semibold text-foreground">Solana Devnet</span>
         </div>
         <div className="flex items-start justify-between">
           <span className="flex items-center gap-1.5 text-muted-foreground">
             Network Fee (Estimated) <Info className="h-3.5 w-3.5" />
           </span>
           <span className="text-right">
-            <span className="block font-semibold text-foreground">~$0.00025 SOL</span>
-            <span className="block text-xs text-muted-foreground">(≈ $0.05)</span>
+            <span className="block font-semibold text-foreground">~0.000005 SOL</span>
+            <span className="block text-xs text-muted-foreground">(≈ $0.001)</span>
           </span>
         </div>
       </div>
@@ -360,8 +468,8 @@ function PaymentDetails({
       <div className="mt-4 flex items-center justify-between rounded-xl bg-secondary/60 p-4">
         <span className="text-sm font-bold text-foreground">Total Payment</span>
         <span className="text-right">
-          <span className="block text-lg font-black text-foreground">{(total).toFixed(2)} USDC</span>
-          <span className="block text-xs text-muted-foreground">≈ 0.0xxx SOL</span>
+          <span className="block text-lg font-black text-foreground">{total.toFixed(2)} SOL</span>
+          <span className="block text-xs text-muted-foreground">≈ {fmt(total)} USD</span>
         </span>
       </div>
 
@@ -372,10 +480,8 @@ function PaymentDetails({
         <Lock className="h-4 w-4" /> Pay with Phantom
       </Link>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        You will be prompted to approve this transaction
+        You will be prompted to approve this transaction on Solana Devnet
       </p>
     </section>
   )
 }
-
-

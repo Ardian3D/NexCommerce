@@ -46,21 +46,23 @@ export function SuccessClient({
   product,
   qty,
   orderId,
+  txHash,
 }: {
   product: Product
   qty: number
   orderId: string | null
+  txHash: string | null
 }) {
   const [copied, setCopied] = useState(false)
 
   const subtotal = product.price * qty
   const total = subtotal + 4.99 + 0.75
   const fmt = (n: number) => `$${n.toFixed(2)}`
-  const hash = '5xYd...8kLmR2'
+  const displayTxHash = txHash ?? '5xYdQ8sN2vP9kLmR2WqXcF7bJ3hG4dT6yU1aZ8kLmR2'
   const displayOrderId = orderId ?? '#NC-2025-05-24-8921'
 
   function copyHash() {
-    navigator.clipboard?.writeText('5xYdQ8sN2vP9kLmR2WqXcF7bJ3hG4dT6yU1aZ8kLmR2')
+    navigator.clipboard?.writeText(displayTxHash)
     setCopied(true)
     setTimeout(() => setCopied(false), 1800)
   }
@@ -231,7 +233,7 @@ export function SuccessClient({
                     onClick={copyHash}
                     className="inline-flex items-center gap-1.5 font-semibold text-foreground transition-colors hover:text-primary"
                   >
-                    {hash}
+                    {displayTxHash.slice(0, 12)}...
                     {copied ? (
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
                     ) : (
@@ -240,11 +242,10 @@ export function SuccessClient({
                   </button>
                 </dd>
               </div>
-              <DetailRow
-                label="Network"
+              <DetailRow label="Network"
                 value={
                   <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
-                    Solana Mainnet <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    Solana Devnet <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
                   </span>
                 }
               />
