@@ -85,6 +85,7 @@ export async function getProducts(filters?: {
 }): Promise<Product[]> {
   const rows = await prisma.product.findMany({
     where: {
+      status: 'published',
       ...(filters?.category && { category: filters.category }),
       ...(filters?.tier && { tier: filters.tier as 'Elite' | 'Ascent' | 'Titanium' }),
     },

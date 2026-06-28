@@ -127,7 +127,7 @@ export function MarketContent({ products }: { products: Product[] }) {
       </div>
 
       <p className="mt-4 text-sm text-muted-foreground">
-        <span className="font-bold text-foreground">1,248</span> products found
+        <span className="font-bold text-foreground">{filtered.length.toLocaleString('en-US')}</span> products found
       </p>
 
       {/* Product grid */}

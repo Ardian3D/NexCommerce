@@ -136,6 +136,7 @@ model Product {
   reviews     Int         @default(0)
   badgeLabel  String?
   badgeTone   BadgeTone?
+  status      String      @default("published")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

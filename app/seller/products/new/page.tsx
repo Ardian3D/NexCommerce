@@ -13,17 +13,21 @@ import {
   Loader2,
   X,
   Check,
+  Save,
 } from 'lucide-react'
 import { SellerShell } from '@/components/seller/shell'
+import { createProduct } from '@/lib/actions/product'
 
 const categories = [
-  'Digital Goods',
+  'Electronics',
   'Gaming',
-  'Software',
-  'Art & Design',
-  'Music & Audio',
-  'E-books',
-  'Templates',
+  'Fashion',
+  'Home & Living',
+  'Accessories',
+  'Beauty',
+  'Sports',
+  'Books',
+  'Digital Goods',
   'Other',
 ]
 
@@ -40,6 +44,7 @@ export default function CreateProductPage() {
 
   const [loading, setLoading] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   function fakeGenerate(key: string, fn: () => void) {
     setLoading(key)
@@ -91,16 +96,37 @@ export default function CreateProductPage() {
     setImages((prev) => [...prev, ...urls].slice(0, 6))
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(status: 'published' | 'draft') {
+    setError(null)
     setSubmitting(true)
-    setTimeout(() => {
-      const params = new URLSearchParams({
-        name: name.trim() || 'Gaming Mouse',
-        price: price || '39',
+
+    try {
+      const result = await createProduct({
+        name,
+        category,
+        price,
+        stock,
+        description,
+        features,
+        tags,
+        image: images[0] ?? undefined,
+        status,
       })
-      router.push(`/product-published?${params.toString()}`)
-    }, 900)
+
+      if (result.success) {
+        if (status === 'published') {
+          router.push('/seller/products')
+        } else {
+          router.push(`/seller/products/${result.slug}`)
+        }
+      } else {
+        setError(result.error)
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const inputClass =
@@ -112,9 +138,9 @@ export default function CreateProductPage() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <Link
-            href="/seller/dashboard"
+            href="/seller/products"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Back to dashboard"
+            aria-label="Back to products"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -128,8 +154,17 @@ export default function CreateProductPage() {
           </div>
         </div>
 
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSubmit('published')
+          }}
           className="grid grid-cols-1 gap-6 lg:grid-cols-3"
         >
           {/* Left: form fields */}
@@ -148,6 +183,7 @@ export default function CreateProductPage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Pro Gaming Mouse"
                     className={inputClass}
+                    required
                   />
                 </div>
 
@@ -160,6 +196,7 @@ export default function CreateProductPage() {
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className={`${inputClass} appearance-none`}
+                      required
                     >
                       <option value="" disabled>
                         Select category
@@ -183,6 +220,7 @@ export default function CreateProductPage() {
                       inputMode="decimal"
                       placeholder="39.00"
                       className={inputClass}
+                      required
                     />
                   </div>
                   <div>
@@ -389,8 +427,11 @@ export default function CreateProductPage() {
               </button>
               <button
                 type="button"
-                className="mt-3 h-11 w-full rounded-xl border border-border bg-background text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                onClick={() => handleSubmit('draft')}
+                disabled={submitting}
+                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-background text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
               >
+                <Save className="h-4 w-4" />
                 Save as Draft
               </button>
             </section>

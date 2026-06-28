@@ -25,7 +25,7 @@ import {
   Store,
   PackageCheck,
 } from 'lucide-react'
-import { IdentityCard } from '@/components/auth/identity-card'
+import { IdentityCard, type IdentityData } from '@/components/auth/identity-card'
 
 type Role = 'buyer' | 'seller'
 
@@ -173,9 +173,18 @@ const sellerConfig: IdentityConfig = {
 const activityTabs = ['Transactions', 'Reviews', 'Disputes', 'Verifications'] as const
 type ActivityTab = (typeof activityTabs)[number]
 
-export function IdentityClient({ role = 'buyer' }: { role?: Role }) {
+export function IdentityClient({
+  role = 'buyer',
+  cardData,
+}: {
+  role?: Role
+  cardData?: Partial<IdentityData>
+}) {
   const [tab, setTab] = useState<ActivityTab>('Transactions')
   const cfg = role === 'seller' ? sellerConfig : buyerConfig
+
+  // Merge card data: props override > hardcoded config
+  const card = { ...cfg.card, ...cardData }
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -199,13 +208,13 @@ export function IdentityClient({ role = 'buyer' }: { role?: Role }) {
       <div className="mt-5 w-full max-w-xl rounded-2xl border border-border bg-card p-4 sm:p-5">
         <IdentityCard
           role={role}
-          fullName={cfg.card.fullName}
-          photo={cfg.card.photo}
-          wallet={cfg.card.wallet}
-          country={cfg.card.country}
-          memberSince={cfg.card.memberSince}
-          trustScore={cfg.card.trustScore}
-          tier={cfg.card.tier}
+          fullName={card.fullName}
+          photo={card.photo}
+          wallet={card.wallet}
+          country={card.country}
+          memberSince={card.memberSince}
+          trustScore={card.trustScore}
+          tier={card.tier}
         />
       </div>
 
