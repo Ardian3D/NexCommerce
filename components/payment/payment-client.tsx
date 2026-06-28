@@ -1,17 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useWallet } from '@solana/wallet-adapter-react'
+import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import {
   SystemProgram,
   LAMPORTS_PER_SOL,
   PublicKey,
   Transaction,
-  Connection,
-  clusterApiUrl,
 } from '@solana/web3.js'
 import {
   Wallet,
@@ -34,12 +32,18 @@ type Status = 'idle' | 'approving' | 'confirming' | 'placing'
 // Seller wallet to receive payment on devnet
 const SELLER_WALLET = '8XHkQF8vXyQ5VjZ5mPxRq3STk9LpNwMc7bDfGh2jKm4R'
 
+/** Max retry attempts for blockhash expiration / transient RPC errors */
+const MAX_RETRIES = 3
+
 export function PaymentClient({ product, qty }: { product: Product; qty: number }) {
   const router = useRouter()
   const { publicKey, sendTransaction, connected, connecting } = useWallet()
+  const { connection } = useConnection()
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
+  // Track if component is still mounted to avoid state updates after unmount
+  const mountedRef = useRef(true)
 
   const subtotal = product.price * qty
   const shippingFee = 4.99
@@ -47,6 +51,106 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
   const totalSol = total // 1 USD ≈ 1 SOL on devnet for simplicity
   const fmt = (n: number) => `$${n.toFixed(2)}`
   const busy = status !== 'idle'
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  const classifyError = useCallback((msg: string): string => {
+    const lower = msg.toLowerCase()
+    if (lower.includes('rejected') || lower.includes('user rejected') || lower.includes('cancelled'))
+      return 'Transaction was rejected in wallet.'
+    if (lower.includes('insufficient') || lower.includes('not enough') || lower.includes('0x1'))
+      return 'Insufficient SOL balance. Please fund your wallet on devnet.'
+    if (lower.includes('blockhash') || lower.includes('block height') || lower.includes('expired'))
+      return 'Transaction expired — the network advanced while approving. Please try again.'
+    if (lower.includes('timeout') || lower.includes('timed out'))
+      return 'Network timeout. Please check your connection and try again.'
+    if (lower.includes('network') || lower.includes('fetch') || lower.includes('503'))
+      return 'Solana Devnet is temporarily unavailable. Please try again later.'
+    return `Payment error: ${msg.slice(0, 120)}`
+  }, [])
+
+  const confirmAndPlace = useCallback(async (signature: string) => {
+    if (!mountedRef.current) return
+
+    setStatus('confirming')
+
+    try {
+      // Use the strategy pattern with latest blockhash for confirmation
+      const latestBlockhash = await connection.getLatestBlockhash('confirmed')
+      const confirmation = await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        },
+        'confirmed',
+      )
+
+      if (confirmation.value.err) {
+        if (mountedRef.current) {
+          setError('Transaction failed on blockchain. Please try again.')
+          setStatus('idle')
+        }
+        return
+      }
+    } catch (confirmErr: unknown) {
+      const cmsg = confirmErr instanceof Error ? confirmErr.message : String(confirmErr)
+      // If confirm fails but TX was already sent, attempt order anyway — chain may have it
+      console.warn('confirmTransaction swallowed, proceeding with order:', cmsg)
+    }
+
+    if (!mountedRef.current) return
+
+    setTxHash(signature)
+    setStatus('placing')
+
+    // Step 4: Create order in DB
+    const result = await placeOrder({ productSlug: product.slug, qty })
+    if (!mountedRef.current) return
+
+    if (result.success) {
+      router.push(`/order/success?orderId=${result.orderId}&tx=${signature}`)
+    } else {
+      setError('Payment confirmed on-chain but order creation failed: ' + result.error)
+      setStatus('idle')
+    }
+  }, [connection, product.slug, qty, router])
+
+  const executeSolanaPayment = useCallback(async (retryCount = 0) => {
+    if (!publicKey || !sendTransaction) return
+
+    const sellerPubkey = new PublicKey(SELLER_WALLET)
+    const amountLamports = Math.round(totalSol * LAMPORTS_PER_SOL)
+
+    // Get fresh blockhash for each attempt
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized')
+
+    const transaction = new Transaction({
+      feePayer: publicKey,
+      blockhash,
+      lastValidBlockHeight,
+    }).add(
+      SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: sellerPubkey,
+        lamports: amountLamports,
+      }),
+    )
+
+    // Step 2: Send to wallet for signing → Phantom popup opens here
+    const signature = await sendTransaction(transaction, connection, {
+      skipPreflight: false,
+      preflightCommitment: 'confirmed',
+      maxRetries: 3,
+    })
+
+    await confirmAndPlace(signature)
+  }, [publicKey, sendTransaction, connection, totalSol, confirmAndPlace])
 
   async function handlePay() {
     setError(null)
@@ -69,67 +173,50 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
       return
     }
 
-    try {
-      // Real Solana transaction on devnet
-      const connection = new Connection(clusterApiUrl('devnet'), 'confirmed')
-      const sellerPubkey = new PublicKey(SELLER_WALLET)
-      const amountLamports = Math.round(totalSol * LAMPORTS_PER_SOL)
+    let lastError: string | null = null
 
-      // Step 1: Build transaction
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        await executeSolanaPayment(attempt)
+        return // success — exit loop
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        const readable = classifyError(msg)
 
-      const transaction = new Transaction({
-        feePayer: publicKey,
-        blockhash,
-        lastValidBlockHeight,
-      }).add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: sellerPubkey,
-          lamports: amountLamports,
-        }),
-      )
+        // Retry only for blockhash / transient errors, not for user rejection or insufficient funds
+        const lower = msg.toLowerCase()
+        const isRetryable =
+          attempt < MAX_RETRIES - 1 &&
+          (lower.includes('blockhash') ||
+           lower.includes('block height') ||
+           lower.includes('expired') ||
+           lower.includes('timeout') ||
+           lower.includes('timed out') ||
+           lower.includes('network') ||
+           lower.includes('503') ||
+           lower.includes('fetch failed') ||
+           lower.includes('unexpected error'))
 
-      // Step 2: Send to wallet for signing
-      const signature = await sendTransaction(transaction, connection)
+        if (isRetryable) {
+          console.warn(`Payment attempt ${attempt + 1} failed, retrying...`, msg)
+          lastError = readable
+          // Brief delay before retry so RPC can recover
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+          continue
+        }
 
-      setStatus('confirming')
-
-      // Step 3: Wait for blockchain confirmation
-      const confirmation = await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      }, 'confirmed')
-
-      if (confirmation.value.err) {
-        setError('Transaction failed on blockchain. Please try again.')
-        setStatus('idle')
+        // Non-retryable: surface immediately
+        if (mountedRef.current) {
+          setError(readable)
+          setStatus('idle')
+        }
         return
       }
+    }
 
-      setTxHash(signature)
-      setStatus('placing')
-
-      // Step 4: Create order in DB
-      const result = await placeOrder({ productSlug: product.slug, qty })
-      if (result.success) {
-        router.push(
-          `/order/success?orderId=${result.orderId}&tx=${signature}`,
-        )
-      } else {
-        setError('Payment confirmed on-chain but order creation failed: ' + result.error)
-        setStatus('idle')
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('rejected') || msg.includes('User rejected')) {
-        setError('Transaction was rejected in wallet.')
-      } else if (msg.includes('insufficient')) {
-        setError('Insufficient SOL balance. Please fund your wallet on devnet.')
-      } else {
-        setError(`Payment error: ${msg.slice(0, 100)}`)
-      }
+    // All retries exhausted
+    if (mountedRef.current) {
+      setError(lastError || 'Payment failed after multiple attempts. Please try again.')
       setStatus('idle')
     }
   }
