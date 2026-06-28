@@ -42,13 +42,22 @@ const timeline = [
   { icon: PackageCheck, title: 'Preparing Order', meta: 'Estimated shipping soon', confirmed: false },
 ]
 
-export function SuccessClient({ product, qty }: { product: Product; qty: number }) {
+export function SuccessClient({
+  product,
+  qty,
+  orderId,
+}: {
+  product: Product
+  qty: number
+  orderId: string | null
+}) {
   const [copied, setCopied] = useState(false)
 
   const subtotal = product.price * qty
   const total = subtotal + 4.99 + 0.75
   const fmt = (n: number) => `$${n.toFixed(2)}`
   const hash = '5xYd...8kLmR2'
+  const displayOrderId = orderId ?? '#NC-2025-05-24-8921'
 
   function copyHash() {
     navigator.clipboard?.writeText('5xYdQ8sN2vP9kLmR2WqXcF7bJ3hG4dT6yU1aZ8kLmR2')
@@ -168,7 +177,7 @@ export function SuccessClient({ product, qty }: { product: Product; qty: number 
             </div>
 
             <dl className="mt-5 space-y-4 text-sm">
-              <DetailRow label="Order ID" value="#NC-2025-05-24-8921" />
+              <DetailRow label="Order ID" value={displayOrderId} />
               <DetailRow label="Order Date" value="May 24, 2025 · 10:42 AM" />
               <DetailRow
                 label="Payment Method"

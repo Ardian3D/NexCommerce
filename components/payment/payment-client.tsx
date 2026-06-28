@@ -17,12 +17,14 @@ import {
 import { type Product } from '@/lib/products'
 import { Stepper } from '@/components/checkout/stepper'
 import { TrustBar } from '@/components/shared/trust-bar'
+import { placeOrder } from '@/lib/actions/order'
 
-type Status = 'idle' | 'approving' | 'confirming'
+type Status = 'idle' | 'approving' | 'confirming' | 'placing'
 
 export function PaymentClient({ product, qty }: { product: Product; qty: number }) {
   const router = useRouter()
   const [status, setStatus] = useState<Status>('idle')
+  const [error, setError] = useState<string | null>(null)
 
   const subtotal = product.price * qty
   const shippingFee = 4.99
@@ -31,12 +33,27 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
   const fmt = (n: number) => `$${n.toFixed(2)}`
   const busy = status !== 'idle'
 
-  function handlePay() {
+  async function handlePay() {
+    setError(null)
     setStatus('approving')
-    setTimeout(() => setStatus('confirming'), 1800)
-    setTimeout(() => {
-      router.push(`/order/success?product=${product.slug}&qty=${qty}`)
-    }, 3600)
+    
+    // Simulate wallet approval
+    await new Promise((r) => setTimeout(r, 1800))
+    setStatus('confirming')
+    
+    // Simulate blockchain confirmation
+    await new Promise((r) => setTimeout(r, 1500))
+    setStatus('placing')
+    
+    // Actually create the order in the database
+    const result = await placeOrder({ productSlug: product.slug, qty })
+    
+    if (result.success) {
+      router.push(`/order/success?orderId=${result.orderId}`)
+    } else {
+      setError(result.error)
+      setStatus('idle')
+    }
   }
 
   return (
@@ -136,7 +153,18 @@ export function PaymentClient({ product, qty }: { product: Product; qty: number 
                   <Loader2 className="h-4 w-4 animate-spin" /> Confirming transaction...
                 </>
               )}
+              {status === 'placing' && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Creating your order...
+                </>
+              )}
             </button>
+
+            {error && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                {error}
+              </div>
+            )}
 
             {!busy ? (
               <Link

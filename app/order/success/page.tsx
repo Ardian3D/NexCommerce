@@ -10,9 +10,9 @@ export const metadata = {
 export default async function OrderSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ product?: string; qty?: string }>
+  searchParams: Promise<{ orderId?: string; product?: string; qty?: string }>
 }) {
-  const { product: slug, qty } = await searchParams
+  const { orderId, product: slug, qty } = await searchParams
   const products = await getProducts()
 
   const product =
@@ -24,7 +24,11 @@ export default async function OrderSuccessPage({
 
   return (
     <BuyerShell>
-      <SuccessClient product={product} qty={initialQty} />
+      <SuccessClient
+        product={product}
+        qty={initialQty}
+        orderId={orderId ?? null}
+      />
     </BuyerShell>
   )
 }

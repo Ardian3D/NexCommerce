@@ -45,6 +45,7 @@ export default function CreateProductPage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   function fakeGenerate(key: string, fn: () => void) {
     setLoading(key)
@@ -98,6 +99,7 @@ export default function CreateProductPage() {
 
   async function handleSubmit(status: 'published' | 'draft') {
     setError(null)
+    setSuccess(null)
     setSubmitting(true)
 
     try {
@@ -114,17 +116,24 @@ export default function CreateProductPage() {
       })
 
       if (result.success) {
-        if (status === 'published') {
-          router.push('/seller/products')
-        } else {
-          router.push(`/seller/products/${result.slug}`)
-        }
+        setSuccess(
+          status === 'published'
+            ? `"${result.name}" published successfully! Redirecting...`
+            : `"${result.name}" saved as draft. Redirecting...`,
+        )
+        setTimeout(() => {
+          if (status === 'published') {
+            router.push('/seller/products')
+          } else {
+            router.push(`/seller/products/${result.slug}`)
+          }
+        }, 1000)
       } else {
         setError(result.error)
+        setSubmitting(false)
       }
     } catch {
       setError('Something went wrong. Please try again.')
-    } finally {
       setSubmitting(false)
     }
   }
@@ -157,6 +166,12 @@ export default function CreateProductPage() {
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            <span className="mr-2">✅</span>
+            {success}
           </div>
         )}
 
