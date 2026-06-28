@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { BuyerShell } from '@/components/buyer/shell'
 import { ProductDetail } from '@/components/product/product-detail'
 import { getProductBySlug, getProductSlugs } from '@/lib/products'
 
@@ -36,9 +35,5 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug)
   if (!product) notFound()
 
-  return (
-    <BuyerShell>
-      <ProductDetail product={product} />
-    </BuyerShell>
-  )
+  return <ProductDetail product={product} />
 }
