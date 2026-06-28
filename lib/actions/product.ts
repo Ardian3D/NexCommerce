@@ -54,7 +54,7 @@ export async function createProduct(
         category: input.category,
         description: input.description ? [input.description] : [],
         features: input.features,
-        image: input.image ?? null,
+        image: input.image && !input.image.startsWith('blob:') ? input.image : null,
         status: input.status,
       },
     })

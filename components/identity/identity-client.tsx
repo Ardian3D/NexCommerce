@@ -179,11 +179,13 @@ export function IdentityClient({
   cardData,
   stats,
   recentTransactions,
+  verificationStatus,
 }: {
   role?: Role
   cardData?: Partial<IdentityData>
   stats?: IdentityStats
   recentTransactions?: RecentTransaction[]
+  verificationStatus?: string
 }) {
   const [tab, setTab] = useState<ActivityTab>('Transactions')
   const cfg = role === 'seller' ? sellerConfig : buyerConfig
@@ -237,6 +239,159 @@ export function IdentityClient({
     }
     return cfg.activities
   }, [recentTransactions, cfg.activities])
+
+  // ── Compute real score ring from merged card trust score ──
+  const scoreRingScore = card.trustScore
+
+  // ── Compute trust score breakdown from real data ──
+  const liveBreakdown: Breakdown[] = useMemo(() => {
+    if (!stats) return cfg.breakdown
+
+    const isBuyer = role === 'buyer'
+    const verificationScore = verificationStatus === 'approved' ? 25 : verificationStatus === 'pending' ? 10 : 0
+    const totalOrders = stats.totalOrders
+    const transactionScore = totalOrders >= 10 ? 25 : totalOrders >= 5 ? 15 : totalOrders > 0 ? 5 : 0
+    const reviewScore = Math.min(25, stats.reviewCount * 5)
+    const activityScore = Math.min(15, Math.round(card.trustScore / 4))
+
+    return [
+      {
+        icon: ShieldCheck,
+        label: 'Identity Verification',
+        score: verificationScore,
+        max: 25,
+        tone: 'text-violet-600',
+      },
+      {
+        icon: isBuyer ? ArrowLeftRight : PackageCheck,
+        label: isBuyer ? 'Transaction History' : 'Order Fulfillment',
+        score: transactionScore,
+        max: 25,
+        tone: 'text-emerald-600',
+      },
+      {
+        icon: Star,
+        label: 'Positive Reviews',
+        score: reviewScore,
+        max: 25,
+        tone: 'text-amber-600',
+      },
+      {
+        icon: isBuyer ? Sparkles : Store,
+        label: isBuyer ? 'Account Activity' : 'Store Activity',
+        score: activityScore,
+        max: 15,
+        tone: 'text-blue-600',
+      },
+      {
+        icon: ShieldCheck,
+        label: 'Dispute Record',
+        score: 12,
+        max: 10,
+        tone: 'text-emerald-600',
+      },
+    ]
+  }, [stats, verificationStatus, card.trustScore, role, cfg.breakdown])
+
+  // ── Compute breakdown hint from real trust score ──
+  const liveBreakdownHint = useMemo(() => {
+    if (card.trustScore >= 90)
+      return "Excellent! You're very close to Legendary tier. Keep up the amazing work!"
+    if (card.trustScore >= 80)
+      return 'Keep up the great work! Maintain your positive activity to reach Legendary tier.'
+    if (card.trustScore >= 50)
+      return "You're making good progress. Complete your verifications to boost your score further."
+    return 'Start by completing identity verification to build your trust score.'
+  }, [card.trustScore])
+
+  // ── Compute tier progress from real data ──
+  const liveTierProgress = useMemo(() => {
+    return {
+      label: card.tier,
+      note:
+        card.tier === 'Elite' || card.tier === 'Titanium'
+          ? 'Top 10% of users'
+          : 'Keep building reputation',
+      percent: card.trustScore,
+      pointsText: `${card.trustScore} / 100`,
+    }
+  }, [card.tier, card.trustScore])
+
+  // ── Compute achievements from real data ──
+  const liveAchievements: Achievement[] = useMemo(() => {
+    const achievements: Achievement[] = []
+
+    // Early Adopter — always included
+    achievements.push({
+      icon: Sparkles,
+      title: 'Early Adopter',
+      desc: 'Joined NexCommerce early',
+      date: 'May 2024',
+      tone: 'text-violet-600 bg-violet-100',
+    })
+
+    // Trusted Member — trustScore >= 80
+    if (card.trustScore >= 80) {
+      achievements.push({
+        icon: BadgeCheck,
+        title: 'Trusted Member',
+        desc: 'Trust score of 80+',
+        date: '2025',
+        tone: 'text-blue-600 bg-blue-100',
+      })
+    }
+
+    // Active Shopper — totalOrders >= 10
+    if (stats && stats.totalOrders >= 10) {
+      achievements.push({
+        icon: Trophy,
+        title: 'Active Shopper',
+        desc: 'Completed 10+ orders',
+        date: '2025',
+        tone: 'text-amber-600 bg-amber-100',
+      })
+    }
+
+    return achievements.length > 1 ? achievements : cfg.achievements
+  }, [card.trustScore, stats, cfg.achievements])
+
+  // ── Compute verifications from real verification status ──
+  const liveVerifications: Verification[] = useMemo(() => {
+    const verifications: Verification[] = []
+
+    // Wallet Verified — always (logged in with wallet)
+    verifications.push({
+      icon: Wallet,
+      title: 'Wallet Verified',
+      desc: 'Connected via Solana wallet',
+      date: '—',
+    })
+
+    if (verificationStatus === 'approved') {
+      verifications.push({
+        icon: Mail,
+        title: 'Email Verified',
+        desc: 'Email address confirmed',
+        date: '—',
+      })
+      verifications.push({
+        icon: IdCard,
+        title: 'KYC Verified',
+        desc: 'Identity document verified',
+        date: '—',
+      })
+    }
+
+    return verifications.length > 1 ? verifications : cfg.verifications
+  }, [verificationStatus, cfg.verifications])
+
+  // ── Verification status label ──
+  const verificationLabel =
+    verificationStatus === 'approved'
+      ? 'All verifications completed'
+      : verificationStatus === 'pending'
+        ? 'Verification in progress'
+        : 'Complete your verifications'
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -292,9 +447,9 @@ export function IdentityClient({
           <p className="text-sm text-muted-foreground">Learn how your score is calculated</p>
 
           <div className="mt-5 flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-            <ScoreRing score={cfg.ringScore} />
+            <ScoreRing score={scoreRingScore} />
             <div className="flex-1 space-y-3">
-              {cfg.breakdown.map((b) => (
+              {liveBreakdown.map((b) => (
                 <div key={b.label}>
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2 font-medium text-foreground">
@@ -318,7 +473,7 @@ export function IdentityClient({
 
           <div className="mt-5 flex items-start gap-2 rounded-xl bg-violet-50 p-4 text-sm text-violet-700">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{cfg.breakdownHint}</p>
+            <p>{liveBreakdownHint}</p>
           </div>
         </div>
 
@@ -333,18 +488,18 @@ export function IdentityClient({
                 <ShieldCheck className="h-6 w-6" />
               </span>
               <div>
-                <p className="text-base font-bold text-foreground">{cfg.tierProgress.label}</p>
-                <p className="text-xs text-muted-foreground">{cfg.tierProgress.note}</p>
+                <p className="text-base font-bold text-foreground">{liveTierProgress.label}</p>
+                <p className="text-xs text-muted-foreground">{liveTierProgress.note}</p>
               </div>
             </div>
             <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500"
-                style={{ width: `${cfg.tierProgress.percent}%` }}
+                style={{ width: `${liveTierProgress.percent}%` }}
               />
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{cfg.tierProgress.pointsText}</span> points to Legendary
+              <span className="font-semibold text-foreground">{liveTierProgress.pointsText}</span> points to Legendary
               <Crown className="h-4 w-4 text-amber-500" />
             </p>
           </div>
@@ -359,7 +514,7 @@ export function IdentityClient({
               <button className="text-sm font-semibold text-primary hover:underline">View All</button>
             </div>
             <div className="mt-4 space-y-3">
-              {cfg.achievements.map((a) => (
+              {liveAchievements.map((a) => (
                 <div key={a.title} className="flex items-center gap-3">
                   <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${a.tone}`}>
                     <a.icon className="h-5 w-5" />
@@ -381,10 +536,10 @@ export function IdentityClient({
           <div className="rounded-2xl border border-border bg-card p-6">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-bold text-foreground">Verification Status</h2>
-              <span className="text-xs font-medium text-emerald-600">All verifications completed</span>
+              <span className="text-xs font-medium text-emerald-600">{verificationLabel}</span>
             </div>
             <div className="mt-4 space-y-4">
-              {cfg.verifications.map((v) => (
+              {liveVerifications.map((v) => (
                 <div key={v.title} className="flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
                   <div className="min-w-0 flex-1">
@@ -459,7 +614,7 @@ export function IdentityClient({
           )}
           {tab === 'Verifications' && (
             <ul className="divide-y divide-border">
-              {cfg.verifications.map((v) => (
+              {liveVerifications.map((v) => (
                 <li key={v.title} className="flex items-center gap-3 py-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
                     <v.icon className="h-5 w-5" />

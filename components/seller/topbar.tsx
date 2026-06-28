@@ -1,8 +1,11 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Search, Bell, MessageSquare, ExternalLink, Menu, ChevronDown } from 'lucide-react'
+import { Search, Bell, MessageSquare, ExternalLink, Menu, ChevronDown, LogOut } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
 
 type Props = {
   onMenuClick?: () => void
@@ -11,9 +14,31 @@ type Props = {
 }
 
 export function SellerTopbar({ onMenuClick, walletAddress, pendingOrdersCount = 0 }: Props) {
+  const router = useRouter()
+  const { disconnect } = useWallet()
+  const [walletOpen, setWalletOpen] = useState(false)
+  const walletRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (walletRef.current && !walletRef.current.contains(e.target as Node)) {
+        setWalletOpen(false)
+      }
+    }
+    if (walletOpen) {
+      document.addEventListener('mousedown', handleClick)
+      return () => document.removeEventListener('mousedown', handleClick)
+    }
+  }, [walletOpen])
+
   const shortAddress = walletAddress
     ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
     : '—'
+
+  async function handleDisconnect() {
+    try { await disconnect() } catch { /* ok */ }
+    router.push('/connect')
+  }
 
   return (
     <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-card px-4 py-3 sm:gap-4 sm:px-6">
@@ -64,19 +89,33 @@ export function SellerTopbar({ onMenuClick, walletAddress, pendingOrdersCount = 
           <ExternalLink className="h-4 w-4" />
         </Link>
 
-        <Link
-          href="/seller/settings"
-          className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background pl-1.5 pr-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-md">
-            <Image src="/phantom-navbar-logo.png" alt="Phantom" width={35} height={35} />
-          </span>
-          <span className="hidden items-center gap-1 sm:flex">
-            {shortAddress}
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          </span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </Link>
+        <div className="relative" ref={walletRef}>
+          <button
+            onClick={() => setWalletOpen((v) => !v)}
+            className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background pl-1.5 pr-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-md">
+              <Image src="/phantom-navbar-logo.png" alt="Phantom" width={35} height={35} />
+            </span>
+            <span className="hidden items-center gap-1 sm:flex">
+              {shortAddress}
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${walletOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {walletOpen && (
+            <div className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-xl z-50">
+              <button
+                onClick={handleDisconnect}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-500 transition-colors hover:bg-muted"
+              >
+                <LogOut className="h-4 w-4" />
+                Disconnect
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

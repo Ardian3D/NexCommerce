@@ -36,6 +36,7 @@ export default async function IdentityPage() {
         }}
         stats={identityStats}
         recentTransactions={identityStats.recentTransactions}
+        verificationStatus={identity.verificationStatus}
       />
     </BuyerShell>
   )

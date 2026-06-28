@@ -81,10 +81,10 @@ export function StoreProfileClient(props: Props) {
           </button>
         </div>
 
-        <div className="px-5 pb-6 sm:px-8">
+        <div className="px-5 pb-8 pt-4 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
-              <div className="-mt-12 flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 ring-4 ring-card sm:-mt-14 sm:h-28 sm:w-28">
+              <div className="-mt-16 flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 ring-4 ring-card sm:-mt-20 sm:h-28 sm:w-28">
                 {photoUrl ? (
                   <Image
                     src={photoUrl}

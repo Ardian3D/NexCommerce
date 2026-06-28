@@ -10,6 +10,7 @@ export type IdentityCardData = {
   memberSince: string
   trustScore: number
   tier: string
+  verificationStatus: string
 }
 
 export async function getIdentityData(
@@ -24,6 +25,7 @@ export async function getIdentityData(
       walletAddress: true,
       country: true,
       createdAt: true,
+      verificationStatus: true,
       buyerProfile: { select: { trustScore: true, currentTier: true } },
       sellerProfile: { select: { trustScore: true, currentTier: true, storeName: true } },
     },
@@ -50,6 +52,7 @@ export async function getIdentityData(
       : '—',
     trustScore: profile?.trustScore ?? 0,
     tier: profile?.currentTier ?? 'Starter',
+    verificationStatus: user?.verificationStatus ?? 'unverified',
   }
 }
 
